@@ -61,6 +61,9 @@ class DTLocalTriggerLutTask: public DQMEDAnalyzer{
   /// Find best (highest qual) DCC trigger segments
   void searchDccBest(std::vector<L1MuDTChambPhDigi> const* trigs);
 
+  /// Find best (highest qual) TM trigger segments
+  void searchTmBest(std::vector<L1MuDTChambPhDigi> const* trigs);
+
   /// Analyze
   void analyze(const edm::Event& e, const edm::EventSetup& c);
 
@@ -70,8 +73,10 @@ class DTLocalTriggerLutTask: public DQMEDAnalyzer{
  private:
 
   /// Get the top folder
-  std::string& topFolder() { return  baseFolder; }
-
+  //std::string& topFolder() { return  baseFolder; }
+  //std::string& topFolderTM() { return  baseFolderTM; }
+  std::string& topFolder(std::string const& type) { return baseFolder[type]; }
+    
   /// Book histos
   void bookHistos(DQMStore::IBooker & ibooker,DTChamberId chId);
 
@@ -82,16 +87,21 @@ class DTLocalTriggerLutTask: public DQMEDAnalyzer{
   int nPhiBins, nPhibBins;
   double rangePhi, rangePhiB;
 
-  std::string baseFolder;
+  std::map<std::string,std::string> baseFolder;
   bool detailedAnalysis;
   bool overUnderIn;
 
   edm::EDGetTokenT<L1MuDTChambPhContainer> dcc_Token_;
+  edm::EDGetTokenT<L1MuDTChambPhContainer> tm_Token_;
   edm::EDGetTokenT<DTRecSegment4DCollection> seg_Token_;
 
   int trigQualBest[6][5][13];
   const L1MuDTChambPhDigi* trigBest[6][5][13];
   bool track_ok[6][5][15]; // CB controlla se serve
+
+  int trigQualBestTM[6][5][13];
+  const L1MuDTChambPhDigi* trigBestTM[6][5][13];
+  bool track_okTM[6][5][15]; 
 
   edm::ParameterSet parameters;
   edm::ESHandle<DTGeometry> muonGeom;

@@ -37,8 +37,10 @@ using namespace std;
 DTLocalTriggerTest::DTLocalTriggerTest(const edm::ParameterSet& ps){
 
   setConfig(ps,"DTLocalTrigger");
-  baseFolderDCC = "DT/03-LocalTrigger-DCC/";
-  baseFolderDDU = "DT/04-LocalTrigger-DDU/";
+  baseFolder["DCC"] = "DT/03-LocalTrigger-DCC/";
+  baseFolder["DDU"] = "DT/04-LocalTrigger-DDU/";
+  baseFolder["COM"] = "DT/04-LocalTrigger-DDU/";
+  baseFolder["TM"] = "DT/05-LocalTrigger-TM/";
   nMinEvts  = ps.getUntrackedParameter<int>("nEventsCert", 5000);
 
   bookingdone = 0;
@@ -123,6 +125,11 @@ void DTLocalTriggerTest::Bookings(DQMStore::IBooker & ibooker, DQMStore::IGetter
 	bookCmsHistos(ibooker,"TrigGlbSummary","",true);
 	bookCmsHistos(ibooker,"TrigGlbSummary","",true);
       }
+      if (hwSource=="TM") {
+
+	bookCmsHistos(ibooker,"TrigGlbSummary","",true);
+	bookCmsHistos(ibooker,"TrigGlbSummary","",true);
+      }
        
     }	
   }
@@ -166,6 +173,42 @@ void DTLocalTriggerTest::runClientDiagnostic(DQMStore::IBooker & ibooker, DQMSto
 		  double corrEntries = 0;
 		  for (int ibin=2; ibin<=8; ++ibin) {
 		    corrEntries += DDUvsDCC->GetBinContent(ibin,ibin);
+		  }
+		  double corrRatio   = corrEntries/entries;
+		  
+		  if (corrRatio < parameters.getUntrackedParameter<double>("matchingFracError",.65)){
+		    matchSummary = 2;
+		  }
+		  else if (corrRatio < parameters.getUntrackedParameter<double>("matchingFracWarning",.85)){
+		    matchSummary = 3;
+		  }
+		  else {
+		    matchSummary = 0;
+		  }
+		  
+		  if( whME[wh].find(fullName("MatchingPhi")) == whME[wh].end() ){
+		    bookWheelHistos(ibooker,wh,"MatchingPhi");
+		  }
+		  
+		  whME[wh].find(fullName("MatchingPhi"))->second->setBinContent(sect,stat,corrRatio);
+		  
+		}
+		
+		whME[wh].find(fullName("MatchingSummary"))->second->setBinContent(sect,stat,matchSummary);
+
+	      }
+	      // Perform DCC-TM matching test and generates summaries (Phi view)
+	      TH2F * TMvsDCC = getHisto<TH2F>(igetter.get(getMEName("QualTMvsQualDCC","LocalTriggerPhi", chId)));
+	      if (TMvsDCC) {
+		
+		int matchSummary   = 1;
+		
+		if (TMvsDCC->GetEntries()>1) {
+		  
+		  double entries     = TMvsDCC->GetEntries();
+		  double corrEntries = 0;
+		  for (int ibin=2; ibin<=8; ++ibin) {
+		    corrEntries += TMvsDCC->GetBinContent(ibin,ibin);
 		  }
 		  double corrRatio   = corrEntries/entries;
 		  
@@ -324,8 +367,26 @@ void DTLocalTriggerTest::runClientDiagnostic(DQMStore::IBooker & ibooker, DQMSto
 		
 		}
 	      }
+	      else if (hwSource=="TM") {
+		// Perform TM plot analysis (Theta ones)	    
+		TH2F * ThetaPosvsBX = getHisto<TH2F>(igetter.get(getMEName("PositionvsBX","LocalTriggerTheta", chId)));
+	      
+		// no theta triggers in stat 4!
+		if (ThetaPosvsBX && stat<4 && ThetaPosvsBX->GetEntries()>1) {
+		  TH1D* BX        = ThetaPosvsBX->ProjectionX();
+		  int    BXOK_bin = BX->GetEffectiveEntries()>=1 ? BX->GetMaximumBin(): 10;
+		  double BX_OK    = ThetaPosvsBX->GetXaxis()->GetBinCenter(BXOK_bin);
+		  delete BX; 
+		
+		  if( whME[wh].find(fullName("CorrectBXTheta")) == whME[wh].end() ){
+		    bookWheelHistos(ibooker,wh,"CorrectBXTheta");
+		  }
+		  std::map<std::string,MonitorElement*> *innerME = &(whME.find(wh)->second);
+		  innerME->find(fullName("CorrectBXTheta"))->second->setBinContent(sect,stat,BX_OK+0.00001);
+		
+		}
+	      }
 	    }
-
 	  }
 	}
       }
@@ -406,7 +467,7 @@ void DTLocalTriggerTest::fillGlobalSummary(DQMStore::IGetter & igetter) {
       int corr   = cmsME.find(fullName("CorrFractionSummary"))->second->getBinContent(sect,wh+3);
       int second = cmsME.find(fullName("2ndFractionSummary"))->second->getBinContent(sect,wh+3);
       int lut=0;
-      MonitorElement * lutsME = igetter.get(topFolder(hwSource=="DCC") + "Summaries/TrigLutSummary");
+      MonitorElement * lutsME = igetter.get(topFolder(hwSource) + "Summaries/TrigLutSummary");
       if (lutsME) {
 	lut = lutsME->getBinContent(sect,wh+3);
 	maxErr+=4;
@@ -427,6 +488,49 @@ void DTLocalTriggerTest::fillGlobalSummary(DQMStore::IGetter & igetter) {
   
   string nEvtsName = "DT/EventInfo/Counters/nProcessedEventsTrigger";
   MonitorElement * meProcEvts = igetter.get(nEvtsName);
+
+  if (meProcEvts) {
+    int nProcEvts = meProcEvts->getFloatValue();
+    cmsME.find("TrigGlbSummary")->second->setEntries(nProcEvts < nMinEvts ? 10. : nProcEvts);
+  } else {
+    cmsME.find("TrigGlbSummary")->second->setEntries(nMinEvts + 1);
+    LogVerbatim (category()) << "[" << testName 
+	 << "Test]: ME: " <<  nEvtsName << " not found!" << endl;
+  }
+
+  
+  hwSource = "TM";  
+  trigSource = "";
+  nSecReadout = 0;
+
+  for (int wh=-2; wh<=2; ++wh) {
+    for (int sect=1; sect<=12; ++sect) {
+
+      float maxErr = 8.;
+      int corr   = cmsME.find(fullName("CorrFractionSummary"))->second->getBinContent(sect,wh+3);
+      int second = cmsME.find(fullName("2ndFractionSummary"))->second->getBinContent(sect,wh+3);
+      int lut=0;
+      MonitorElement * lutsME = igetter.get(topFolder(hwSource) + "Summaries/TrigLutSummary");
+      if (lutsME) {
+	lut = lutsME->getBinContent(sect,wh+3);
+	maxErr+=4;
+      } else {
+	LogTrace(category()) << "[" << testName 
+	 << "Test]: TM Lut test Summary histo not found." << endl;
+      }
+      (corr <5 || second<5) && nSecReadout++;
+      int errcode = ((corr<5 ? corr : 4) + (second<5 ? second : 4) + (lut<5 ? lut : 4) );
+      errcode = min(int((errcode/maxErr + 0.01)*5),5);
+      cmsME.find("TrigGlbSummary")->second->setBinContent(sect,wh+3,glbPerc[errcode]);
+    
+    }
+  }
+
+  if (!nSecReadout) 
+    cmsME.find("TrigGlbSummary")->second->Reset(); // white histo id TM is not RO
+
+  nEvtsName = "DT/EventInfo/Counters/nProcessedEventsTrigger";
+  meProcEvts = igetter.get(nEvtsName);
 
   if (meProcEvts) {
     int nProcEvts = meProcEvts->getFloatValue();

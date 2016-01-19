@@ -45,8 +45,8 @@ using namespace std;
 DTLocalTriggerSynchTest::DTLocalTriggerSynchTest(const edm::ParameterSet& ps) {
 
   setConfig(ps,"DTLocalTriggerSynch");
-  baseFolderDCC = "DT/90-LocalTriggerSynch/";
-  baseFolderDDU = "DT/90-LocalTriggerSynch/";
+  baseFolder["DCC"] = "DT/90-LocalTriggerSynch/";
+  baseFolder["DDU"] = "DT/90-LocalTriggerSynch/";
 
   bookingdone = 0;
 
@@ -237,7 +237,7 @@ float DTLocalTriggerSynchTest::getFloatFromME(DQMStore::IGetter & igetter,
    stringstream station; station << chId.station();
    stringstream sector; sector << chId.sector();
 
-   string folderName = topFolder(hwSource=="DCC") + "Wheel" +  wheel.str() +
+   string folderName = topFolder(hwSource) + "Wheel" +  wheel.str() +
      "/Sector" + sector.str() + "/Station" + station.str() + "/" ; 
 
    string histoname = sourceFolder + folderName 
@@ -266,10 +266,10 @@ void DTLocalTriggerSynchTest::bookChambHistos(DQMStore::IBooker & ibooker,
   stringstream sector; sector << chambId.sector();
 
   string fullType  = fullName(htype);
-  bool isDCC = hwSource=="DCC" ;
+  //bool isDCC = hwSource=="DCC" ;
   string HistoName = fullType + "_W" + wheel.str() + "_Sec" + sector.str() + "_St" + station.str();
 
-  string folder = topFolder(isDCC) + "Wheel" + wheel.str() + "/Sector" + sector.str() + "/Station" + station.str();
+  string folder = topFolder(hwSource) + "Wheel" + wheel.str() + "/Sector" + sector.str() + "/Station" + station.str();
   if ( subfolder!="") { folder += "7" + subfolder; }
 
   ibooker.setCurrentFolder(folder);

@@ -92,10 +92,10 @@ protected:
 
  /// Get the ME name (by wheel)
   std::string getMEName(std::string histoTag, std::string subfolder, int wh);
-  
+
   /// Get top folder name
-  inline std::string & topFolder(bool isDCC) { return isDCC ? baseFolderDCC : baseFolderDDU; } ;
-  
+  std::string& topFolder(std::string const& type) { return baseFolder[type]; }
+   
   /// Get message logger name
   inline std::string category() { return "DTDQM|DTMonitorClient|" + testName + "Test"; } ;
   
@@ -112,8 +112,10 @@ protected:
   std::string sourceFolder;
   edm::ParameterSet parameters;
   bool runOnline;
-  std::string baseFolderDCC;
-  std::string baseFolderDDU;
+  std::map<std::string,std::string> baseFolder;
+  //std::string baseFolderDCC;
+  //std::string baseFolderDDU;
+  //std::string baseFolderTM;
   std::string trigSource;
   std::string hwSource;
   edm::ESHandle<DTGeometry> muonGeom;

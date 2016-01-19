@@ -73,14 +73,20 @@ class DTLocalTriggerBaseTask: public DQMEDAnalyzer{
   /// Run analysis on DCC data
   void runDCCAnalysis(std::vector<L1MuDTChambPhDigi> const* phTrigs, std::vector<L1MuDTChambThDigi> const* thTrigs);
 
+  /// Run analysis on TM data
+  void runTMAnalysis(std::vector<L1MuDTChambPhDigi> const* phTrigs, std::vector<L1MuDTChambThDigi> const* thTrigs);
+
   /// Run analysis on ROS data
   void runDDUAnalysis(edm::Handle<DTLocalTriggerCollection>& trigsDDU);
 
   /// Run analysis on ROS data
   void runDDUvsDCCAnalysis();
 
+  /// Comparison analysis
+  void runTMvsDCCAnalysis();
+
   /// Get the Top folder (different between Physics and TP and DCC/DDU)
-  std::string& topFolder(std::string const& type) { return baseFolder[type == "DCC"]; }
+  std::string& topFolder(std::string const& type) { return baseFolder[type]; }
 
   void bookHistograms(DQMStore::IBooker &, edm::Run const &, edm::EventSetup const &) override;
 
@@ -97,14 +103,16 @@ class DTLocalTriggerBaseTask: public DQMEDAnalyzer{
   int nEventsInLS;
   int nLumis;
 
-  std::string baseFolder[2];
+  std::map<std::string,std::string> baseFolder;
   bool tpMode;
   bool detailedAnalysis;
   bool processDCC;
   bool processDDU;
+  bool processTM;
 
   int targetBXDDU;
   int targetBXDCC;
+  int targetBXTM;
   int bestAccRange;
 
   edm::ParameterSet theParams;
@@ -119,6 +127,8 @@ class DTLocalTriggerBaseTask: public DQMEDAnalyzer{
 
   edm::EDGetTokenT<L1MuDTChambPhContainer> dcc_phi_Token_;
   edm::EDGetTokenT<L1MuDTChambThContainer> dcc_theta_Token_;
+  edm::EDGetTokenT<L1MuDTChambPhContainer> tm_phi_Token_;
+  edm::EDGetTokenT<L1MuDTChambThContainer> tm_theta_Token_;
   edm::EDGetTokenT<DTLocalTriggerCollection> trig_Token_;
 };
 

@@ -79,6 +79,9 @@ class DTLocalTriggerTask: public DQMEDAnalyzer{
   /// Run analysis on DCC data
   void runDCCAnalysis(std::vector<L1MuDTChambPhDigi> const* phTrigs, std::vector<L1MuDTChambThDigi> const* thTrigs);
 
+  /// Run analysis on TM data
+  void runTMAnalysis(std::vector<L1MuDTChambPhDigi> const* phTrigs, std::vector<L1MuDTChambThDigi> const* thTrigs); 
+
   /// Run analysis on ROS data
   void runDDUAnalysis(edm::Handle<DTLocalTriggerCollection>& trigsDDU);
 
@@ -87,6 +90,9 @@ class DTLocalTriggerTask: public DQMEDAnalyzer{
 
   /// Run analysis on ROS data
   void runDDUvsDCCAnalysis(std::string& trigsrc);
+
+  /// Run analysis on TM data
+  void runTMvsDCCAnalysis(std::string& trigsrc);
 
   /// Analyze
   void analyze(const edm::Event& e, const edm::EventSetup& c);
@@ -98,34 +104,45 @@ class DTLocalTriggerTask: public DQMEDAnalyzer{
   void triggerSource(const edm::Event& e);
 
   /// Get the Top folder (different between Physics and TP and DCC/DDU)
-  std::string& topFolder(bool isDCC) { return isDCC ? baseFolderDCC : baseFolderDDU; }
-
+  //std::string& topFolder(bool isDCC) { return isDCC ? baseFolderDCC : baseFolderDDU; }
+  std::string& topFolder(std::string const& type) { return baseFolder[type]; }
+  
  private:
 
   edm::EDGetTokenT<L1MuDTChambPhContainer> dcc_Token_;
   edm::EDGetTokenT<L1MuDTChambThContainer> dccTh_Token_;    // NEW (M.C Fouz July14) Needed, since at least version 710
+  edm::EDGetTokenT<L1MuDTChambPhContainer> tm_Token_;
+  edm::EDGetTokenT<L1MuDTChambThContainer> tmTh_Token_;    
   edm::EDGetTokenT<DTLocalTriggerCollection> ros_Token_;
   edm::EDGetTokenT<DTRecSegment4DCollection> seg_Token_;
   edm::EDGetTokenT<LTCDigiCollection> ltcDigiCollectionToken_;
 
-  bool useDCC, useDDU, useSEG;
+  bool useDCC, useDDU, useSEG, useTM;
   std::string trigsrc;
   int nevents;
   bool tpMode;
-  std::string baseFolderDCC;
-  std::string baseFolderDDU;
-  bool doDCCTheta;
+  std::map<std::string,std::string> baseFolder;
+/*  std::string baseFolderDCC;
+  std::string baseFolderTM;
+  std::string baseFolderDDU;*/
+  bool doDCCTheta, doTMTheta;
   bool detailedAnalysis;
 
 
-  int phcode_best[6][5][13];
+  int dccphcode_best[6][5][13];
   int dduphcode_best[6][5][13];
-  int thcode_best[6][5][13];
+  int dccthcode_best[6][5][13];
   int dduthcode_best[6][5][13];
+  int tmphcode_best[6][5][13];
+  int tmthcode_best[6][5][13];
+
   int mapDTTF[6][13][2];
-  const L1MuDTChambPhDigi* iphbest[6][5][13];
+  const L1MuDTChambPhDigi* iphbestdcc[6][5][13];
+  const L1MuDTChambThDigi* ithbestdcc[6][5][13];
+  const L1MuDTChambPhDigi* iphbesttm[6][5][13];
+  const L1MuDTChambThDigi* ithbesttm[6][5][13];
   const DTLocalTrigger*    iphbestddu[6][5][13];
-  const L1MuDTChambThDigi* ithbest[6][5][13];
+
   bool track_ok[6][5][15];
 
   edm::ParameterSet parameters;
@@ -135,7 +152,8 @@ class DTLocalTriggerTask: public DQMEDAnalyzer{
   std::map<int, std::map<std::string, MonitorElement*> > wheelHistos;
 
   MonitorElement* dcc_IDDataErrorPlot;
-
+  MonitorElement* tm_IDDataErrorPlot;
+  
   bool isLocalRun;
 };
 

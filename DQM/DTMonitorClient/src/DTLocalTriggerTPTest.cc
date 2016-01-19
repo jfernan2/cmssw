@@ -37,8 +37,9 @@ using namespace std;
 DTLocalTriggerTPTest::DTLocalTriggerTPTest(const edm::ParameterSet& ps){
 
   setConfig(ps,"DTLocalTriggerTP");
-  baseFolderDCC = "DT/11-LocalTriggerTP-DCC/";
-  baseFolderDDU = "DT/12-LocalTriggerTP-DDU/";
+  baseFolder["DCC"] = "DT/11-LocalTriggerTP-DCC/";
+  baseFolder["DDU"] = "DT/12-LocalTriggerTP-DDU/";
+  baseFolder["TM"] = "DT/13-LocalTriggerTP-TM/";
   
   bookingdone = 0;
 

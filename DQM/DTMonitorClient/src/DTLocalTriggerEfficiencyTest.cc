@@ -38,8 +38,9 @@ using namespace std;
 DTLocalTriggerEfficiencyTest::DTLocalTriggerEfficiencyTest(const edm::ParameterSet& ps) : trigGeomUtils(0) {
 
   setConfig(ps,"DTLocalTriggerEfficiency");
-  baseFolderDCC = "DT/03-LocalTrigger-DCC/";
-  baseFolderDDU = "DT/04-LocalTrigger-DDU/";
+  baseFolder["DCC"] = "DT/03-LocalTrigger-DCC/";
+  baseFolder["DDU"] = "DT/04-LocalTrigger-DDU/";
+  baseFolder["TM"] = "DT/04-LocalTrigger-TM/";
 
   bookingdone = 0;
 
@@ -316,14 +317,14 @@ void DTLocalTriggerEfficiencyTest::bookChambHistos(DQMStore::IBooker & ibooker,D
   stringstream sector; sector << chambId.sector();
 
   string fullType  = fullName(htype);
-  bool isDCC = hwSource=="DCC" ;
+  //bool isDCC = hwSource=="DCC" ;
   string HistoName = fullType + "_W" + wheel.str() + "_Sec" + sector.str() + "_St" + station.str();
 
-  ibooker.setCurrentFolder(topFolder(isDCC) + "Wheel" + wheel.str() +
+  ibooker.setCurrentFolder(topFolder(hwSource) + "Wheel" + wheel.str() +
 			"/Sector" + sector.str() +
 			"/Station" + station.str() + "/Segment");
 
-  LogTrace(category()) << "[" << testName << "Test]: booking " + topFolder(isDCC) + "Wheel" << wheel.str() 
+  LogTrace(category()) << "[" << testName << "Test]: booking " + topFolder(hwSource) + "Wheel" << wheel.str() 
 		       <<"/Sector" << sector.str() << "/Station" << station.str() << "/Segment/" << HistoName;
 
   

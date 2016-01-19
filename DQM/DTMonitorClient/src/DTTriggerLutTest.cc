@@ -37,8 +37,9 @@ using namespace std;
 DTTriggerLutTest::DTTriggerLutTest(const edm::ParameterSet& ps){
 	
   setConfig(ps,"DTTriggerLut");
-  baseFolderDCC = "DT/03-LocalTrigger-DCC/";
-  baseFolderDDU = "DT/04-LocalTrigger-DDU/";
+  baseFolder["DCC"] = "DT/03-LocalTrigger-DCC/";
+  baseFolder["DDU"] = "DT/04-LocalTrigger-DDU/";
+  baseFolder["TM"] = "DT/05-LocalTrigger-TM/";
   thresholdWarnPhi  = ps.getUntrackedParameter<double>("thresholdWarnPhi");
   thresholdErrPhi   = ps.getUntrackedParameter<double>("thresholdErrPhi");
   thresholdWarnPhiB = ps.getUntrackedParameter<double>("thresholdWarnPhiB");
@@ -327,7 +328,7 @@ int DTTriggerLutTest::performLutTest(double perc,double thresholdWarn ,double th
 
 void DTTriggerLutTest::bookCmsHistos1d(DQMStore::IBooker & ibooker, string hTag, string folder) {
 
-  string basedir = topFolder(true);
+  string basedir = topFolder("DCC");
   if (folder != "") {
     basedir += folder +"/" ;
   }
