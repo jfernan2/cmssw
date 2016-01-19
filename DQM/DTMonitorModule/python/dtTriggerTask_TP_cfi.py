@@ -17,6 +17,7 @@ dtTPTriggerMonitor = cms.EDAnalyzer("DTLocalTriggerTask",
     testPulseMode = cms.untracked.bool(True), #if true enables test pulse mode
     detailedAnalysis = cms.untracked.bool(False), #if true enables detailed analysis plots
     enableDCCTheta = cms.untracked.bool(False), # if true enables theta plots for DCC
+    enableTMTheta = cms.untracked.bool(False), # if true enables theta plots for TM
     localrun = cms.untracked.bool(True), # if false access LTC digis
     # number of luminosity blocks to reset the histos
     ResetCycle = cms.untracked.int32(10000)

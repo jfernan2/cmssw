@@ -37,8 +37,8 @@ using namespace std;
 DTLocalTriggerLutTest::DTLocalTriggerLutTest(const edm::ParameterSet& ps){
 
   setConfig(ps,"DTLocalTriggerLut");
-  baseFolderDCC = "DT/03-LocalTrigger-DCC/";
-  baseFolderDDU = "DT/04-LocalTrigger-DDU/";
+  baseFolder["DCC"] = "DT/03-LocalTrigger-DCC/";
+  baseFolder["DDU"] = "DT/04-LocalTrigger-DDU/";
   thresholdPhiMean  = ps.getUntrackedParameter<double>("thresholdPhiMean",1.5);
   thresholdPhiRMS   = ps.getUntrackedParameter<double>("thresholdPhiRMS",.5);
   thresholdPhibMean = ps.getUntrackedParameter<double>("thresholdPhibMean",1.5);

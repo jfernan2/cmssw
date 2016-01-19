@@ -46,12 +46,17 @@ DTLocalTriggerTask::DTLocalTriggerTask(const edm::ParameterSet& ps) :
   tpMode           = ps.getUntrackedParameter<bool>("testPulseMode", false);
   detailedAnalysis = ps.getUntrackedParameter<bool>("detailedAnalysis", false);
   doDCCTheta       = ps.getUntrackedParameter<bool>("enableDCCTheta", false);
+  doTMTheta        = ps.getUntrackedParameter<bool>("enableTMTheta", false);
   dcc_Token_       = consumes<L1MuDTChambPhContainer>(
       edm::InputTag(ps.getUntrackedParameter<string>("dcc_label", "dttpgprod")));
 // NEW (M.C Fouz July14) Needed, since at least version 710 
   dccTh_Token_       = consumes<L1MuDTChambThContainer>(
       edm::InputTag(ps.getUntrackedParameter<string>("dcc_label", "dttpgprod")));
 // end NEW
+  tm_Token_        = consumes<L1MuDTChambPhContainer>(
+      edm::InputTag(ps.getUntrackedParameter<string>("tm_label", "dttpgprod")));
+  tmTh_Token_       = consumes<L1MuDTChambThContainer>(
+      edm::InputTag(ps.getUntrackedParameter<string>("tm_label", "dttpgprod")));
 
   ros_Token_       = consumes<DTLocalTriggerCollection>(
       edm::InputTag(ps.getUntrackedParameter<string>("ros_label", "dtunpacker")));
@@ -59,12 +64,14 @@ DTLocalTriggerTask::DTLocalTriggerTask(const edm::ParameterSet& ps) :
       edm::InputTag(ps.getUntrackedParameter<string>("seg_label", "dt4DSegments")));
 
   if (tpMode) {
-    baseFolderDCC = "DT/11-LocalTriggerTP-DCC/";
-    baseFolderDDU = "DT/12-LocalTriggerTP-DDU/";
+    baseFolder["DCC"] = "DT/11-LocalTriggerTP-DCC/";
+    baseFolder["DDU"] = "DT/12-LocalTriggerTP-DDU/";
+    baseFolder["TM"]  = "DT/13-LocalTriggerTP-TM/";
   }
   else {
-    baseFolderDCC = "DT/03-LocalTrigger-DCC/";
-    baseFolderDDU = "DT/04-LocalTrigger-DDU/";
+    baseFolder["DCC"] = "DT/03-LocalTrigger-DCC/";
+    baseFolder["DDU"] = "DT/04-LocalTrigger-DDU/";
+    baseFolder["TM"]  = "DT/05-LocalTrigger-TM/";
   }
 
   parameters = ps;
@@ -109,6 +116,11 @@ void DTLocalTriggerTask::bookHistograms(DQMStore::IBooker & ibooker, edm::Run co
       bookBarrelHistos(ibooker, "DCC_ErrorsChamberID");
     }
 
+    if(parameters.getUntrackedParameter<bool>("process_tm", true)) {
+      bookBarrelHistos(ibooker, "TM_ErrorsChamberID");
+    }
+
+
     if (tpMode) {
       for (int stat=1;stat<5;++stat){
 	for (int wh=-2;wh<3;++wh){
@@ -119,6 +131,11 @@ void DTLocalTriggerTask::bookHistograms(DQMStore::IBooker & ibooker, edm::Run co
 	      bookHistos(ibooker, dtChId,"LocalTriggerPhi","DCC_BXvsQual"+(*trigSrcIt));
 	      bookHistos(ibooker, dtChId,"LocalTriggerPhi","DCC_QualvsPhirad"+(*trigSrcIt));
 	    }
+
+            if (parameters.getUntrackedParameter<bool>("process_tm", true)){ // TM data
+              bookHistos(ibooker, dtChId,"LocalTriggerPhi","TM_BXvsQual"+(*trigSrcIt));
+              bookHistos(ibooker, dtChId,"LocalTriggerPhi","TM_QualvsPhirad"+(*trigSrcIt));
+            }
 
 	    if (parameters.getUntrackedParameter<bool>("process_ros", true)){ // DDU data
 	      bookHistos(ibooker, dtChId,"LocalTriggerPhi","DDU_BXvsQual"+(*trigSrcIt));
@@ -138,6 +155,7 @@ void DTLocalTriggerTask::bookHistograms(DQMStore::IBooker & ibooker, edm::Run co
 	  for (int sect=1;sect<13;++sect){
 	    for (int stat=1;stat<5;++stat){
 	      DTChamberId dtChId(wh,stat,sect);
+		//	DCC
 	      if (parameters.getUntrackedParameter<bool>("process_dcc", true)){ // DCC data
 
 		bookHistos(ibooker, dtChId,"LocalTriggerPhi","DCC_BXvsQual"+(*trigSrcIt));
@@ -169,6 +187,41 @@ void DTLocalTriggerTask::bookHistograms(DQMStore::IBooker & ibooker, edm::Run co
 		}
 
 	      }
+		// End of DCC
+
+		// Twin Mux
+              if (parameters.getUntrackedParameter<bool>("process_tm", true)){ // TM data
+
+                bookHistos(ibooker, dtChId,"LocalTriggerPhi","TM_BXvsQual"+(*trigSrcIt));
+                if (detailedAnalysis) {
+                  bookHistos(ibooker, dtChId,"LocalTriggerPhi","TM_QualvsPhirad"+(*trigSrcIt));
+                  bookHistos(ibooker, dtChId,"LocalTriggerPhi","TM_QualvsPhibend"+(*trigSrcIt));
+                }
+                bookHistos(ibooker, dtChId,"LocalTriggerPhi","TM_Flag1stvsQual"+(*trigSrcIt));
+                bookHistos(ibooker, dtChId,"LocalTriggerPhi","TM_BestQual"+(*trigSrcIt));
+                if (stat!=4 && doTMTheta){
+                  bookHistos(ibooker, dtChId,"LocalTriggerTheta","TM_PositionvsBX"+(*trigSrcIt));
+                }
+
+                if (parameters.getUntrackedParameter<bool>("process_seg", true)){ // TM + Segemnt
+                  bookHistos(ibooker, dtChId,"Segment","TM_PhitkvsPhitrig"+(*trigSrcIt));
+                  bookHistos(ibooker, dtChId,"Segment","TM_PhibtkvsPhibtrig"+(*trigSrcIt));
+                  bookHistos(ibooker, dtChId,"Segment","TM_PhiResidual"+(*trigSrcIt));
+                  bookHistos(ibooker, dtChId,"Segment","TM_PhiResidualvsLUTPhi"+(*trigSrcIt));
+                  bookHistos(ibooker, dtChId,"Segment","TM_PhibResidual"+(*trigSrcIt));
+                  bookHistos(ibooker, dtChId,"Segment","TM_HitstkvsQualtrig"+(*trigSrcIt));
+                  bookHistos(ibooker, dtChId,"Segment","TM_TrackPosvsAngle"+(*trigSrcIt));
+                  bookHistos(ibooker, dtChId,"Segment","TM_TrackPosvsAngleandTrig"+(*trigSrcIt));
+                  bookHistos(ibooker, dtChId,"Segment","TM_TrackPosvsAngleandTrigHHHL"+(*trigSrcIt));
+                  if(stat!=4){
+                    bookHistos(ibooker, dtChId,"Segment","TM_TrackThetaPosvsAngle"+(*trigSrcIt)); // theta view
+                    bookHistos(ibooker, dtChId,"Segment","TM_TrackThetaPosvsAngleandTrig"+(*trigSrcIt));
+                    bookHistos(ibooker, dtChId,"Segment","TM_TrackThetaPosvsAngleandTrigH"+(*trigSrcIt));     // TM theta quality not available!
+                  }
+                }
+
+              }
+		// End of Twin Mux
 
 	      if (parameters.getUntrackedParameter<bool>("process_ros", true)){ // DDU data
 
@@ -251,6 +304,8 @@ void DTLocalTriggerTask::analyze(const edm::Event& e, const edm::EventSetup& c){
 
     useDCC = (l1DTTPGPh.isValid() || l1DTTPGTh.isValid()) && parameters.getUntrackedParameter<bool>("process_dcc", true) ;
 
+    useTM  = (l1DTTPGPh.isValid() || l1DTTPGTh.isValid()) && parameters.getUntrackedParameter<bool>("process_tm", true) ;
+
     Handle<DTLocalTriggerCollection> l1DDUTrigs;
     e.getByToken(ros_Token_,l1DDUTrigs);
     useDDU = l1DDUTrigs.isValid() && parameters.getUntrackedParameter<bool>("process_ros", true) ;
@@ -278,6 +333,25 @@ void DTLocalTriggerTask::analyze(const edm::Event& e, const edm::EventSetup& c){
 
     runDCCAnalysis(l1PhTrig, l1ThTrig);
   }
+
+  if ( useTM ) {
+    edm::Handle<L1MuDTChambPhContainer> l1TMPGPh;
+    e.getByToken(tm_Token_, l1TMPGPh);
+    vector<L1MuDTChambPhDigi> const*  l1PhTrigTM = l1TMPGPh->getContainer();
+
+    edm::Handle<L1MuDTChambThContainer> l1TMPGTh;
+    //e.getByToken(dcc_Token_, l1TMPGTh);
+          e.getByToken(tmTh_Token_, l1TMPGTh);
+
+    vector<L1MuDTChambThDigi> const*  l1ThTrigTM = l1TMPGTh->getContainer();
+
+    runTMAnalysis(l1PhTrigTM, l1ThTrigTM);
+  }
+
+  if ( !tpMode && useDCC && useTM ) {
+    runTMvsDCCAnalysis(trigsrc);
+  } 
+
   if ( useDDU ) {
     Handle<DTLocalTriggerCollection> l1DDUTrigs;
     e.getByToken(ros_Token_, l1DDUTrigs);
@@ -292,23 +366,34 @@ void DTLocalTriggerTask::analyze(const edm::Event& e, const edm::EventSetup& c){
   }
   if ( !tpMode && useDCC && useDDU ) {
     runDDUvsDCCAnalysis(trigsrc);
-  }
-
+  } 
 }
 
 
 void DTLocalTriggerTask::bookBarrelHistos(DQMStore::IBooker & ibooker, string histoTag) {
 
   bool isDCC = histoTag.substr(0,3) == "DCC";
-  ibooker.setCurrentFolder(topFolder(isDCC));
+  if (isDCC){
+  ibooker.setCurrentFolder(topFolder("DCC"));
   if (histoTag == "DCC_ErrorsChamberID") {
     dcc_IDDataErrorPlot = ibooker.book1D(histoTag.c_str(),"DCC Data ID Error",5,-2,3);
     dcc_IDDataErrorPlot->setAxisTitle("wheel",1);
   }
-
+  }
+  
+  bool isTM = histoTag.substr(0,2) == "TM";
+  if (isTM){
+  ibooker.setCurrentFolder(topFolder("TM"));
+  if (histoTag == "TM_ErrorsChamberID") {
+    tm_IDDataErrorPlot = ibooker.book1D(histoTag.c_str(),"TM Data ID Error",5,-2,3);
+    tm_IDDataErrorPlot->setAxisTitle("wheel",1);
+  }
+  }
+  
   return;
 
 }
+
 
 void DTLocalTriggerTask::bookHistos(DQMStore::IBooker & ibooker, const DTChamberId& dtCh, string folder, string histoTag) {
 
@@ -323,26 +408,57 @@ void DTLocalTriggerTask::bookHistos(DQMStore::IBooker & ibooker, const DTChamber
   int  rangeBX=0;
 
   string histoType = histoTag.substr(4,histoTag.find("_",4)-4);
-  bool isDCC = histoTag.substr(0,3) == "DCC";
-
-  ibooker.setCurrentFolder(topFolder(isDCC) + "Wheel" + wheel.str() +
+  //bool isDCC = histoTag.substr(0,3) == "DCC";
+  string histoName;
+  if (histoTag.substr(0,3) == "DCC"){
+  ibooker.setCurrentFolder(topFolder("DCC") + "Wheel" + wheel.str() +
 			"/Sector" + sector.str() +
 			"/Station" + station.str() + "/" + folder);
 
-  string histoName = histoTag + "_W" + wheel.str() + "_Sec" + sector.str() + "_St" + station.str();
+  histoName = histoTag + "_W" + wheel.str() + "_Sec" + sector.str() + "_St" + station.str();
 
-  LogTrace("DTDQM|DTMonitorModule|DTLocalTriggerTask") << "[DTLocalTriggerTask]: booking " << topFolder(isDCC) << "Wheel" << wheel.str()
+  LogTrace("DTDQM|DTMonitorModule|DTLocalTriggerTask") << "[DTLocalTriggerTask]: booking " << topFolder("DCC") << "Wheel" << wheel.str()
 						       << "/Sector" << sector.str()
 						       << "/Station"<< station.str() << "/" << folder << "/" << histoName << endl;
+  }
+  else if(histoTag.substr(0,3) == "DDU") {
+  ibooker.setCurrentFolder(topFolder("DDU") + "Wheel" + wheel.str() +
+			"/Sector" + sector.str() +
+			"/Station" + station.str() + "/" + folder);
+
+  histoName = histoTag + "_W" + wheel.str() + "_Sec" + sector.str() + "_St" + station.str();
+
+  LogTrace("DTDQM|DTMonitorModule|DTLocalTriggerTask") << "[DTLocalTriggerTask]: booking " << topFolder("DDU") << "Wheel" << wheel.str()
+						       << "/Sector" << sector.str()
+						       << "/Station"<< station.str() << "/" << folder << "/" << histoName << endl;  
+  }
+  else if(histoTag.substr(0,2) == "TM") {
+  ibooker.setCurrentFolder(topFolder("TM") + "Wheel" + wheel.str() +
+			"/Sector" + sector.str() +
+			"/Station" + station.str() + "/" + folder);
+
+  histoName = histoTag + "_W" + wheel.str() + "_Sec" + sector.str() + "_St" + station.str();
+
+  LogTrace("DTDQM|DTMonitorModule|DTLocalTriggerTask") << "[DTLocalTriggerTask]: booking " << topFolder("TM") << "Wheel" << wheel.str()
+						       << "/Sector" << sector.str()
+						       << "/Station"<< station.str() << "/" << folder << "/" << histoName << endl;  
+  }
+ 
+   	
+	
 
   if (histoType.find("BX") != string::npos){
     if (histoTag.substr(0,3) == "DCC"){
       minBX= parameters.getUntrackedParameter<int>("minBXDCC",-2) - 0.5;
       maxBX= parameters.getUntrackedParameter<int>("maxBXDCC",2) + 0.5;
     }
-    else {
+    else if(histoTag.substr(0,3) == "DDU"){
       minBX= parameters.getUntrackedParameter<int>("minBXDDU",0) - 0.5;
       maxBX= parameters.getUntrackedParameter<int>("maxBXDDU",20) + 0.5;
+    }
+    else if(histoTag.substr(0,2) == "TM"){
+      minBX= parameters.getUntrackedParameter<int>("minBXTM",0) - 0.5;
+      maxBX= parameters.getUntrackedParameter<int>("maxBXTM",2) + 0.5;    
     }
     rangeBX = (int)(maxBX-minBX);
   }
@@ -480,12 +596,12 @@ void DTLocalTriggerTask::bookWheelHistos(DQMStore::IBooker & ibooker, int wh, st
 
   string histoType = histoTag.substr(4,histoTag.find("_",4)-4);
   bool isDCC = histoTag.substr(0,3) == "DCC";
-
-  ibooker.setCurrentFolder(topFolder(isDCC) + "Wheel" + wheel.str() + "/");
+  if(isDCC){
+  ibooker.setCurrentFolder(topFolder("DCC") + "Wheel" + wheel.str() + "/");
 
   string histoName = histoTag + "_W" + wheel.str();
 
-  LogTrace("DTDQM|DTMonitorModule|DTLocalTriggerTask") << "[DTLocalTriggerTask]: booking " << topFolder(isDCC)
+  LogTrace("DTDQM|DTMonitorModule|DTLocalTriggerTask") << "[DTLocalTriggerTask]: booking " << topFolder("DCC")
 						       << "Wheel" << wheel.str() << "/" << histoName << endl;
 
   if( histoType.find("BXDiff") != string::npos ){
@@ -495,6 +611,18 @@ void DTLocalTriggerTask::bookWheelHistos(DQMStore::IBooker & ibooker, int wh, st
     (wheelHistos[wh])[histoTag] = me;
     return ;
   }
+  }
+  
+  bool isTM = histoTag.substr(0,2) == "TM";
+  if(isTM){
+  ibooker.setCurrentFolder(topFolder("TM") + "Wheel" + wheel.str() + "/");
+
+  string histoName = histoTag + "_W" + wheel.str();
+
+  LogTrace("DTDQM|DTMonitorModule|DTLocalTriggerTask") << "[DTLocalTriggerTask]: booking " << topFolder("TM")
+						       << "Wheel" << wheel.str() << "/" << histoName << endl;
+  }
+  
 
 }
 
@@ -509,8 +637,8 @@ void DTLocalTriggerTask::runDCCAnalysis(std::vector<L1MuDTChambPhDigi> const* ph
   for (int i=0;i<5;++i){
     for (int j=0;j<6;++j){
       for (int k=0;k<13;++k){
-	phcode_best[j][i][k] = -1;
-	thcode_best[j][i][k] = -1;
+	dccphcode_best[j][i][k] = -1;
+	dccthcode_best[j][i][k] = -1;
       }
     }
   }
@@ -532,9 +660,9 @@ void DTLocalTriggerTask::runDCCAnalysis(std::vector<L1MuDTChambPhDigi> const* ph
       continue;
     }
 
-    if(phcode>phcode_best[phwheel+3][phst][phsec] && phcode<7) {
-      phcode_best[phwheel+3][phst][phsec]=phcode;
-      iphbest[phwheel+3][phst][phsec] = &(*iph);
+    if(phcode>dccphcode_best[phwheel+3][phst][phsec] && phcode<7) {
+      dccphcode_best[phwheel+3][phst][phsec]=phcode;
+      iphbestdcc[phwheel+3][phst][phsec] = &(*iph);
     }
 
     DTChamberId dtChId(phwheel,phst,phsec);
@@ -573,9 +701,9 @@ void DTLocalTriggerTask::runDCCAnalysis(std::vector<L1MuDTChambPhDigi> const* ph
       for (int pos=0; pos<7; pos++) {
 	thcode[pos] = ith->code(pos);
 
-	if(thcode[pos]>thcode_best[thwheel+3][thst][thsec] ) {
-	  thcode_best[thwheel+3][thst][thsec]=thcode[pos];
-	  ithbest[thwheel+3][thst][thsec] = &(*ith);
+	if(thcode[pos]>dccthcode_best[thwheel+3][thst][thsec] ) {
+	  dccthcode_best[thwheel+3][thst][thsec]=thcode[pos];
+	  ithbestdcc[thwheel+3][thst][thsec] = &(*ith);
 	}
       }
 
@@ -598,12 +726,12 @@ void DTLocalTriggerTask::runDCCAnalysis(std::vector<L1MuDTChambPhDigi> const* ph
     for (int st=1;st<5;++st){
       for (int wh=-2;wh<3;++wh){
 	for (int sc=1;sc<13;++sc){
-	  if (phcode_best[wh+3][st][sc]>-1 && phcode_best[wh+3][st][sc]<7){
+	  if (dccphcode_best[wh+3][st][sc]>-1 && dccphcode_best[wh+3][st][sc]<7){
 	    DTChamberId id(wh,st,sc);
 	    uint32_t indexCh = id.rawId();
 	    map<string, MonitorElement*> &innerME = digiHistos[indexCh];
 
-	    innerME.find("DCC_BestQual"+trigsrc)->second->Fill(phcode_best[wh+3][st][sc]);  // Best Qual Trigger Phi view
+	    innerME.find("DCC_BestQual"+trigsrc)->second->Fill(dccphcode_best[wh+3][st][sc]);  // Best Qual Trigger Phi view
 	  }
 	}
       }
@@ -611,6 +739,124 @@ void DTLocalTriggerTask::runDCCAnalysis(std::vector<L1MuDTChambPhDigi> const* ph
   }
 
 }
+
+
+// Twin Mux
+void DTLocalTriggerTask::runTMAnalysis(std::vector<L1MuDTChambPhDigi> const* phTrigs,
+					 std::vector<L1MuDTChambThDigi> const* thTrigs ) {
+
+  string histoType ;
+  string histoTag ;
+
+  // define best quality trigger segment (phi and theta)
+  // in any station start from 1 and zero is kept empty
+  for (int i=0;i<5;++i){
+    for (int j=0;j<6;++j){
+      for (int k=0;k<13;++k){
+	tmphcode_best[j][i][k] = -1;
+	tmthcode_best[j][i][k] = -1;
+      }
+    }
+  }
+
+  vector<L1MuDTChambPhDigi>::const_iterator iph  = phTrigs->begin();
+  vector<L1MuDTChambPhDigi>::const_iterator iphe = phTrigs->end();
+  for(; iph !=iphe ; ++iph) {
+
+    int phwheel = iph->whNum();
+    int phsec   = iph->scNum() + 1; // SM The track finder goes from 0 to 11. I need them from 1 to 12 !!!!!
+    int phst    = iph->stNum();
+    int phbx    = iph->bxNum();
+    int phcode  = iph->code();
+    int phi1st  = iph->Ts2Tag();
+
+    // FIXME: workaround for TM data with station ID
+    if(phst == 0) {
+      tm_IDDataErrorPlot->Fill(phwheel);
+      continue;
+    }
+
+    if(phcode>tmphcode_best[phwheel+3][phst][phsec] && phcode<7) {
+      tmphcode_best[phwheel+3][phst][phsec]=phcode;
+      iphbesttm[phwheel+3][phst][phsec] = &(*iph);
+    }
+
+    DTChamberId dtChId(phwheel,phst,phsec);
+
+    float x     = trigGeomUtils->trigPos(&(*iph));
+    float angle = trigGeomUtils->trigDir(&(*iph));
+    uint32_t indexCh = dtChId.rawId();
+
+    map<string, MonitorElement*> &innerME = digiHistos[indexCh];
+
+    if (tpMode) {
+      innerME.find("TM_BXvsQual"+trigsrc)->second->Fill(phcode,phbx-phi1st);    // SM BX vs Qual Phi view (1st tracks)
+      innerME.find("TM_QualvsPhirad"+trigsrc)->second->Fill(x,phcode);          // SM Qual vs radial angle Phi view
+    }
+    else {
+      innerME.find("TM_BXvsQual"+trigsrc)->second->Fill(phcode,phbx-phi1st);    // SM BX vs Qual Phi view (1st tracks)
+      innerME.find("TM_Flag1stvsQual"+trigsrc)->second->Fill(phcode,phi1st);    // SM Qual 1st/2nd track flag Phi view
+      if (detailedAnalysis) {
+	innerME.find("TM_QualvsPhirad"+trigsrc)->second->Fill(x,phcode);          // SM Qual vs radial angle Phi view
+	innerME.find("TM_QualvsPhibend"+trigsrc)->second->Fill(angle,phcode);     // SM Qual vs bending Phi view
+      }
+    }
+
+  }
+
+  if (doTMTheta) {
+    int thcode[7];
+    vector<L1MuDTChambThDigi>::const_iterator ith  = thTrigs->begin();
+    vector<L1MuDTChambThDigi>::const_iterator ithe = thTrigs->end();
+    for(; ith != ithe; ++ith) {
+      int thwheel = ith->whNum();
+      int thsec   = ith->scNum() + 1; // SM The track finder goes from 0 to 11. I need them from 1 to 12 !!!!!
+      int thst    = ith->stNum();
+      int thbx    = ith->bxNum();
+
+      for (int pos=0; pos<7; pos++) {
+	thcode[pos] = ith->code(pos);
+
+	if(thcode[pos]>tmthcode_best[thwheel+3][thst][thsec] ) {
+	  tmthcode_best[thwheel+3][thst][thsec]=thcode[pos];
+	  ithbesttm[thwheel+3][thst][thsec] = &(*ith);
+	}
+      }
+
+      DTChamberId dtChId(thwheel,thst,thsec);
+      uint32_t indexCh = dtChId.rawId();
+
+      map<string, MonitorElement*> &innerME = digiHistos[indexCh];
+
+      for (int pos=0; pos<7; pos++) { //SM fill position for non zero position bit in theta view
+	if(thcode[pos]>0){
+	  innerME.find("TM_PositionvsBX"+trigsrc)->second->Fill(thbx,pos);          // SM BX vs Position Theta view
+	}
+      }
+    }
+  }
+
+
+  // Fill Quality plots with best TM triggers in phi & theta
+  if (!tpMode) {
+    for (int st=1;st<5;++st){
+      for (int wh=-2;wh<3;++wh){
+	for (int sc=1;sc<13;++sc){
+	  if (tmphcode_best[wh+3][st][sc]>-1 && tmphcode_best[wh+3][st][sc]<7){
+	    DTChamberId id(wh,st,sc);
+	    uint32_t indexCh = id.rawId();
+	    map<string, MonitorElement*> &innerME = digiHistos[indexCh];
+
+	    innerME.find("TM_BestQual"+trigsrc)->second->Fill(tmphcode_best[wh+3][st][sc]);  // Best Qual Trigger Phi view
+	  }
+	}
+      }
+    }
+  }
+
+}
+
+// End Twin Mux
 
 void DTLocalTriggerTask::runDDUAnalysis(Handle<DTLocalTriggerCollection>& trigsDDU){
 
@@ -764,15 +1010,15 @@ void DTLocalTriggerTask::runSegmentAnalysis(Handle<DTRecSegment4DCollection>& se
       }
 
       if (useDCC &&
-	  phcode_best[wheel+3][station][scsector] > -1 &&
-	  phcode_best[wheel+3][station][scsector] < 7 ) {
+	  dccphcode_best[wheel+3][station][scsector] > -1 &&
+	  dccphcode_best[wheel+3][station][scsector] < 7 ) {
 
-	innerME.find("DCC_HitstkvsQualtrig"+trigsrc)->second->Fill(phcode_best[wheel+3][station][scsector],nHitsPhi);
+	innerME.find("DCC_HitstkvsQualtrig"+trigsrc)->second->Fill(dccphcode_best[wheel+3][station][scsector],nHitsPhi);
 
-	if (phcode_best[wheel+3][station][scsector]>3 && nHitsPhi>=7){
+	if (dccphcode_best[wheel+3][station][scsector]>3 && nHitsPhi>=7){
 
-	  float x_trigger     = trigGeomUtils->trigPos(iphbest[wheel+3][station][scsector]);
-	  float angle_trigger = trigGeomUtils->trigDir(iphbest[wheel+3][station][scsector]);
+	  float x_trigger     = trigGeomUtils->trigPos(iphbestdcc[wheel+3][station][scsector]);
+	  float angle_trigger = trigGeomUtils->trigDir(iphbestdcc[wheel+3][station][scsector]);
 	  trigGeomUtils->trigToSeg(station,x_trigger,x_angle);
 
 	  innerMECh.find("DCC_PhitkvsPhitrig"+trigsrc)->second->Fill(x_trigger,x_track);
@@ -782,15 +1028,15 @@ void DTLocalTriggerTask::runSegmentAnalysis(Handle<DTRecSegment4DCollection>& se
 	}
       }
 
-
+	
       if (useDCC) {
 
 	// check for triggers elsewhere in the sector
 	bool trigFlagDCC =false;
 	for (int ist=1; ist<5; ist++){
 	  if (ist!=station &&
-	      phcode_best[wheel+3][ist][scsector]>=2 &&
-	      phcode_best[wheel+3][ist][scsector]<7 &&
+	      dccphcode_best[wheel+3][ist][scsector]>=2 &&
+	      dccphcode_best[wheel+3][ist][scsector]<7 &&
 	      track_ok[wheel+3][ist][scsector]==true){
 	    trigFlagDCC = true;
 	    break;
@@ -801,9 +1047,9 @@ void DTLocalTriggerTask::runSegmentAnalysis(Handle<DTRecSegment4DCollection>& se
 
 	  // position vs angle of track for reconstruced tracks (denom. for trigger efficiency)
 	  innerME.find("DCC_TrackPosvsAngle"+trigsrc)->second->Fill(x_angle,x_track);
-	  if (phcode_best[wheel+3][station][scsector] >= 2 && phcode_best[wheel+3][station][scsector] < 7) {
+	  if (dccphcode_best[wheel+3][station][scsector] >= 2 && dccphcode_best[wheel+3][station][scsector] < 7) {
 	    innerME.find("DCC_TrackPosvsAngleandTrig"+trigsrc)->second->Fill(x_angle,x_track);
-	    if (phcode_best[wheel+3][station][scsector] > 4){  //HH & HL Triggers
+	    if (dccphcode_best[wheel+3][station][scsector] > 4){  //HH & HL Triggers
 	      innerME.find("DCC_TrackPosvsAngleandTrigHHHL"+trigsrc)->second->Fill(x_angle,x_track);
 	    }
 	  }
@@ -814,13 +1060,73 @@ void DTLocalTriggerTask::runSegmentAnalysis(Handle<DTRecSegment4DCollection>& se
 
 	  // position va angle of track for reconstruced tracks (denom. for trigger efficiency) along theta direction
 	  innerME.find("DCC_TrackThetaPosvsAngle"+trigsrc)->second->Fill(y_angle,y_track);
-	  if (thcode_best[wheel+3][station][scsector] > 0) {
+	  if (dccthcode_best[wheel+3][station][scsector] > 0) {
 	    innerME.find("DCC_TrackThetaPosvsAngleandTrig"+trigsrc)->second->Fill(y_angle,y_track);
 	  }
 
 	}
       }
 
+	// Twin Mux
+      if (useTM &&
+	  tmphcode_best[wheel+3][station][scsector] > -1 &&
+	  tmphcode_best[wheel+3][station][scsector] < 7 ) {
+
+	innerME.find("TM_HitstkvsQualtrig"+trigsrc)->second->Fill(tmphcode_best[wheel+3][station][scsector],nHitsPhi);
+
+	if (tmphcode_best[wheel+3][station][scsector]>3 && nHitsPhi>=7){
+
+	  float x_trigger     = trigGeomUtils->trigPos(iphbesttm[wheel+3][station][scsector]);
+	  float angle_trigger = trigGeomUtils->trigDir(iphbesttm[wheel+3][station][scsector]);
+	  trigGeomUtils->trigToSeg(station,x_trigger,x_angle);
+
+	  innerMECh.find("TM_PhitkvsPhitrig"+trigsrc)->second->Fill(x_trigger,x_track);
+	  innerMECh.find("TM_PhibtkvsPhibtrig"+trigsrc)->second->Fill(angle_trigger,x_angle);
+	  innerMECh.find("TM_PhiResidual"+trigsrc)->second->Fill(x_trigger-x_track);
+	  innerMECh.find("TM_PhibResidual"+trigsrc)->second->Fill(angle_trigger-x_angle);
+	}
+      }
+
+      if (useTM) {
+
+	// check for triggers elsewhere in the sector
+	bool trigFlagTM =false;
+	for (int ist=1; ist<5; ist++){
+	  if (ist!=station &&
+	      tmphcode_best[wheel+3][ist][scsector]>=2 &&
+	      tmphcode_best[wheel+3][ist][scsector]<7 &&
+	      track_ok[wheel+3][ist][scsector]==true){
+	    trigFlagTM = true;
+	    break;
+	  }
+	}
+
+	if (trigFlagTM && fabs(x_angle)<40. && nHitsPhi>=7){
+
+	  // position vs angle of track for reconstruced tracks (denom. for trigger efficiency)
+	  innerME.find("TM_TrackPosvsAngle"+trigsrc)->second->Fill(x_angle,x_track);
+	  if (tmphcode_best[wheel+3][station][scsector] >= 2 && tmphcode_best[wheel+3][station][scsector] < 7) {
+	    innerME.find("TM_TrackPosvsAngleandTrig"+trigsrc)->second->Fill(x_angle,x_track);
+	    if (tmphcode_best[wheel+3][station][scsector] > 4){  //HH & HL Triggers
+	      innerME.find("TM_TrackPosvsAngleandTrigHHHL"+trigsrc)->second->Fill(x_angle,x_track);
+	    }
+	  }
+
+	}
+
+	if ((*btrack)->hasZed() && trigFlagTM && fabs(y_angle)<40. && (*btrack)->zSegment()->degreesOfFreedom()>=1){
+
+	  // position va angle of track for reconstruced tracks (denom. for trigger efficiency) along theta direction
+	  innerME.find("TM_TrackThetaPosvsAngle"+trigsrc)->second->Fill(y_angle,y_track);
+	  if (tmthcode_best[wheel+3][station][scsector] > 0) {
+	    innerME.find("TM_TrackThetaPosvsAngleandTrig"+trigsrc)->second->Fill(y_angle,y_track);
+	  }
+
+	}
+      }
+
+	// End Twin Mux
+	
       if (useDDU) {
 
 	// check for triggers elsewhere in the sector
@@ -875,17 +1181,17 @@ void DTLocalTriggerTask::runDDUvsDCCAnalysis(string& trigsrc){
   for (int st=1;st<5;++st){
     for (int wh=-2;wh<3;++wh){
       for (int sc=1;sc<13;++sc){
-	if ( (phcode_best[wh+3][st][sc]>-1 && phcode_best[wh+3][st][sc]<7) ||
+	if ( (dccphcode_best[wh+3][st][sc]>-1 && dccphcode_best[wh+3][st][sc]<7) ||
 	     (dduphcode_best[wh+3][st][sc]>-1 && dduphcode_best[wh+3][st][sc]<7) ){
 	  DTChamberId id(wh,st,sc);
 	  uint32_t indexCh = id.rawId();
 	  map<string, MonitorElement*> &innerME = digiHistos[indexCh];
 
-	  innerME.find("COM_QualDDUvsQualDCC"+trigsrc)->second->Fill(phcode_best[wh+3][st][sc],dduphcode_best[wh+3][st][sc]);
-	  if ( (phcode_best[wh+3][st][sc]>-1 && phcode_best[wh+3][st][sc]<7) &&
+	  innerME.find("COM_QualDDUvsQualDCC"+trigsrc)->second->Fill(dccphcode_best[wh+3][st][sc],dduphcode_best[wh+3][st][sc]);
+	  if ( (dccphcode_best[wh+3][st][sc]>-1 && dccphcode_best[wh+3][st][sc]<7) &&
 	       (dduphcode_best[wh+3][st][sc]>-1 && dduphcode_best[wh+3][st][sc]<7) ){
 	    int bxDDU = iphbestddu[wh+3][st][sc]->bx() - iphbestddu[wh+3][st][sc]->secondTrack();
-	    int bxDCC = iphbest[wh+3][st][sc]->bxNum() - iphbest[wh+3][st][sc]->Ts2Tag();
+	    int bxDCC = iphbestdcc[wh+3][st][sc]->bxNum() - iphbestdcc[wh+3][st][sc]->Ts2Tag();
 	    (wheelHistos[wh]).find("COM_BXDiff"+trigsrc)->second->Fill(sc,st,bxDDU-bxDCC);
 	  }
 	}
@@ -893,6 +1199,33 @@ void DTLocalTriggerTask::runDDUvsDCCAnalysis(string& trigsrc){
     }
   }
 
+}
+
+void DTLocalTriggerTask::runTMvsDCCAnalysis(string& trigsrc){
+
+  string histoType ;
+  string histoTag ;
+
+  for (int st=1;st<5;++st){
+    for (int wh=-2;wh<3;++wh){
+      for (int sc=1;sc<13;++sc){
+	if ( (dccphcode_best[wh+3][st][sc]>-1 && dccphcode_best[wh+3][st][sc]<7) ||
+	     (tmphcode_best[wh+3][st][sc]>-1 && tmphcode_best[wh+3][st][sc]<7) ){
+	  DTChamberId id(wh,st,sc);
+	  uint32_t indexCh = id.rawId();
+	  map<string, MonitorElement*> &innerME = digiHistos[indexCh];
+
+	  innerME.find("COM_QualTMvsQualDCC"+trigsrc)->second->Fill(dccphcode_best[wh+3][st][sc],tmphcode_best[wh+3][st][sc]);
+	  if ( (dccphcode_best[wh+3][st][sc]>-1 && dccphcode_best[wh+3][st][sc]<7) &&
+	       (dduphcode_best[wh+3][st][sc]>-1 && dduphcode_best[wh+3][st][sc]<7) ){
+	    int bxTM = iphbesttm[wh+3][st][sc]->bxNum() - iphbesttm[wh+3][st][sc]->Ts2Tag();
+	    int bxDCC = iphbestdcc[wh+3][st][sc]->bxNum() - iphbestdcc[wh+3][st][sc]->Ts2Tag();
+	    (wheelHistos[wh]).find("COM_BXDiff"+trigsrc)->second->Fill(sc,st,bxTM-bxDCC);
+	  }
+	}
+      }
+    }
+  }
 }
 
 void DTLocalTriggerTask::setQLabels(MonitorElement* me, short int iaxis){
