@@ -2,7 +2,7 @@
 #define DaqSource_RawFile_h
 
 /** \class RawFile
- *  Utility class to open, read and manage local and rfio files
+ *  Utility class to open, read and manage local and XrdCli files
  *  in a transparent way
  *
  *  \author J. Alcaraz - CIEMAT, Madrid
@@ -61,7 +61,6 @@ class RawFile {
  private:
 
   FILE* inputFile;
-  bool  rfioFlag;
   bool  xrootdFlag;
 };
 #endif
