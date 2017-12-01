@@ -28,7 +28,7 @@ process.generator = cms.EDFilter("Pythia8GeneratorFilter",
         ),
         pythia8_example12 = cms.vstring(
               'POWHEG:bb4l = on',
-	      'POWHEG:nFinal = 2',
+#	      'POWHEG:nFinal = 2',
               'Beams:frameType = 4',
               'Beams:LHEF = powheg-b_bbar_4l.lhe',
         ),
