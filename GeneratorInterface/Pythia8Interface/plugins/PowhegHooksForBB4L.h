@@ -278,7 +278,7 @@ public:
   // at the end of the event and the final entry is the POWHEG emission.
   // If there is no POWHEG emission, then pThard is set to SCALUP.
 
-  inline bool canVetoMPIStep()    { return true; }
+  inline bool canVetoMPIStep() override   { return true; }
   inline int  numberVetoMPIStep() { return 1; }
   inline bool doVetoMPIStep(int nMPI, const Event &e) {
     // Extra check on nMPI
