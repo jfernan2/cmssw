@@ -34,6 +34,7 @@
 #include "L1Trigger/DTTriggerPhase2/interface/MPQualityEnhancerFilter.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MPRedundantFilter.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MPCleanHitsFilter.h"
+#include "L1Trigger/DTTriggerPhase2/interface/MPQualityEnhancerFilterBayes.h"
 #include "L1Trigger/DTTriggerPhase2/interface/GlobalCoordsObtainer.h"
 
 #include "DataFormats/MuonDetId/interface/DTChamberId.h"
@@ -136,6 +137,7 @@ private:
   std::unique_ptr<MotherGrouping> grouping_obj_;
   std::unique_ptr<MuonPathAnalyzer> mpathanalyzer_;
   std::unique_ptr<MPFilter> mpathqualityenhancer_;
+  std::unique_ptr<MPFilter> mpathqualityenhancerbayes_;
   std::unique_ptr<MPFilter> mpathredundantfilter_;
   std::unique_ptr<MPFilter> mpathhitsfilter_;
   std::unique_ptr<MuonPathAssociator> mpathassociator_;
@@ -172,8 +174,6 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
     : qmap_({{9, 9}, {8, 8}, {7, 6}, {6, 7}, {5, 3}, {4, 5}, {3, 4}, {2, 2}, {1, 1}}) {
   produces<L1Phase2MuDTPhContainer>();
   produces<L1Phase2MuDTExtPhContainer>();
-  // produces<L1Phase2MuDTPhContainer<L1Phase2MuDTPhDigi>>();
-  // produces<L1Phase2MuDTPhContainer<L1Phase2MuDTExtPhDigi>>();
   produces<L1Phase2MuDTThContainer>();
   produces<L1Phase2MuDTExtThContainer>();
 
@@ -224,13 +224,13 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
     mpathanalyzer_ = std::make_unique<MuonPathAnalyzerInChamber>(pset, consumesColl, globalcoordsobtainer_);
   }
   
-
   // Getting buffer option
   activateBuffer_ = pset.getParameter<bool>("activateBuffer");
   superCellhalfspacewidth_ = pset.getParameter<int>("superCellspacewidth") / 2;
   superCelltimewidth_ = pset.getParameter<double>("superCelltimewidth");
 
   mpathqualityenhancer_ = std::make_unique<MPQualityEnhancerFilter>(pset);
+  mpathqualityenhancerbayes_ = std::make_unique<MPQualityEnhancerFilterBayes>(pset);
   mpathredundantfilter_ = std::make_unique<MPRedundantFilter>(pset);
   mpathhitsfilter_ = std::make_unique<MPCleanHitsFilter>(pset);
   mpathassociator_ = std::make_unique<MuonPathAssociator>(pset, consumesColl, globalcoordsobtainer_);
@@ -253,6 +253,7 @@ void DTTrigPhase2Prod::beginRun(edm::Run const& iRun, const edm::EventSetup& iEv
   grouping_obj_->initialise(iEventSetup);          // Grouping object initialisation
   mpathanalyzer_->initialise(iEventSetup);         // Analyzer object initialisation
   mpathqualityenhancer_->initialise(iEventSetup);  // Filter object initialisation
+  mpathqualityenhancerbayes_->initialise(iEventSetup);  // Filter object initialisation
   mpathredundantfilter_->initialise(iEventSetup);  // Filter object initialisation
   mpathhitsfilter_->initialise(iEventSetup);
   mpathassociator_->initialise(iEventSetup);       // Associator object initialisation
@@ -503,7 +504,12 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     mpathassociator_->run(iEvent, iEventSetup, dtdigis, filteredMetaPrimitives, correlatedMetaPrimitives);
   else {
     for (const auto& muonpath : outmpaths) {
-      correlatedMetaPrimitives.emplace_back(muonpath->rawId(),
+      // trick to avoid definition of additional metaPrimitive vectors:
+      // first fill filteredMetaPrimitives and then actually filter them
+      // and fill correlatedMetaPrimitives.
+      // If it sounds confusing, we can fix it
+      // correlatedMetaPrimitives.emplace_back(muonpath->rawId(),
+      filteredMetaPrimitives.emplace_back(muonpath->rawId(),
                                             (double)muonpath->bxTimeValue(),
                                             muonpath->horizPos(),
                                             muonpath->tanPhi(),
@@ -538,6 +544,8 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
                                             muonpath->primitive(7)->tdcTimeStamp(),
                                             muonpath->primitive(7)->laterality());
     }
+    mpathqualityenhancerbayes_->run(iEvent, iEventSetup, filteredMetaPrimitives, correlatedMetaPrimitives);
+
   }
   filteredMetaPrimitives.clear();
 
@@ -616,8 +624,14 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 	int pathWireId[8] = {metaPrimitiveIt.wi1,metaPrimitiveIt.wi2,metaPrimitiveIt.wi3,metaPrimitiveIt.wi4,
 			     metaPrimitiveIt.wi5,metaPrimitiveIt.wi6,metaPrimitiveIt.wi7,metaPrimitiveIt.wi8};
 	
-	int pathTDC[8] = {metaPrimitiveIt.tdc1,metaPrimitiveIt.tdc2,metaPrimitiveIt.tdc3,metaPrimitiveIt.tdc4,
-			  metaPrimitiveIt.tdc5,metaPrimitiveIt.tdc6,metaPrimitiveIt.tdc7,metaPrimitiveIt.tdc8};
+	int pathTDC[8] = {max((int)round(metaPrimitiveIt.tdc1 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc2 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc3 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc4 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc5 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc6 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc7 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc8 - shift_back * LHC_CLK_FREQ), -1)};
 	
 	int pathLat[8] = {metaPrimitiveIt.lat1,metaPrimitiveIt.lat2,metaPrimitiveIt.lat3,metaPrimitiveIt.lat4,
 			  metaPrimitiveIt.lat5,metaPrimitiveIt.lat6,metaPrimitiveIt.lat7,metaPrimitiveIt.lat8};
@@ -668,7 +682,10 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 	
 	int pathWireId[4] = {metaPrimitiveIt.wi1, metaPrimitiveIt.wi2, metaPrimitiveIt.wi3, metaPrimitiveIt.wi4};
 	
-	int pathTDC[4] = {metaPrimitiveIt.tdc1, metaPrimitiveIt.tdc2, metaPrimitiveIt.tdc3, metaPrimitiveIt.tdc4};
+	int pathTDC[4] = {max((int)round(metaPrimitiveIt.tdc1 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc2 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc3 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc4 - shift_back * LHC_CLK_FREQ), -1)};
 	
 	int pathLat[4] = {metaPrimitiveIt.lat1, metaPrimitiveIt.lat2, metaPrimitiveIt.lat3, metaPrimitiveIt.lat4};
 
@@ -760,6 +777,7 @@ void DTTrigPhase2Prod::endRun(edm::Run const& iRun, const edm::EventSetup& iEven
   grouping_obj_->finish();
   mpathanalyzer_->finish();
   mpathqualityenhancer_->finish();
+  mpathqualityenhancerbayes_->finish();
   mpathredundantfilter_->finish();
   mpathhitsfilter_->finish();
   mpathassociator_->finish();
