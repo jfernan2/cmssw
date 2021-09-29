@@ -38,8 +38,10 @@ public:
 
   // Public attributes
   int areCousins(cmsdt::metaPrimitive mp1, cmsdt::metaPrimitive mp2);
+  int shareSL(cmsdt::metaPrimitive mp1, cmsdt::metaPrimitive mp2);
   bool areSame(cmsdt::metaPrimitive mp1, cmsdt::metaPrimitive mp2);
   int rango(cmsdt::metaPrimitive mp);
+  int BX(cmsdt::metaPrimitive mp);
   void printmP(cmsdt::metaPrimitive mP);
 
 private:

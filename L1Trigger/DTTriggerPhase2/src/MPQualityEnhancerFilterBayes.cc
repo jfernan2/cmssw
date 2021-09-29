@@ -134,6 +134,86 @@ bool MPQualityEnhancerFilterBayes::areSame(metaPrimitive mp, metaPrimitive secon
   return true;
 }
 
+int MPQualityEnhancerFilterBayes::shareSL(metaPrimitive mp, metaPrimitive second_mp) {
+  DTSuperLayerId mpId(mp.rawId);
+  DTSuperLayerId second_mpId(second_mp.rawId);
+
+  int output = 0;
+  if (mpId.wheel()   != second_mpId.wheel()   ||
+      mpId.station() != second_mpId.station() ||
+      mpId.sector()  != second_mpId.sector()){
+    return output;
+  }
+
+  int SL1 = 0;
+  int SL3 = 0;
+
+  int SL1_shared = 0;
+  int SL3_shared = 0;
+
+  if (mp.wi1 != -1 and mp.tdc1 != -1){
+    ++SL1;
+    if (mp.wi1 == second_mp.wi1 and mp.tdc1 == second_mp.tdc1){
+      ++SL1_shared;
+    }
+  }
+  if (mp.wi2 != -1 and mp.tdc2 != -1){
+    ++SL1;
+    if (mp.wi2 == second_mp.wi2 and mp.tdc2 == second_mp.tdc2){
+      ++SL1_shared;
+    }
+  }
+  if (mp.wi3 != -1 and mp.tdc3 != -1){
+    ++SL1;
+    if (mp.wi3 == second_mp.wi3 and mp.tdc3 == second_mp.tdc3){
+      ++SL1_shared;
+    }
+  }
+  if (mp.wi4 != -1 and mp.tdc4 != -1){
+    ++SL1;
+    if (mp.wi4 == second_mp.wi4 and mp.tdc4 == second_mp.tdc4){
+      ++SL1_shared;
+    }
+  }
+
+  if (mp.wi5 != -1 and mp.tdc5 != -1){
+    ++SL3;
+    if (mp.wi5 == second_mp.wi5 and mp.tdc5 == second_mp.tdc5){
+      ++SL3_shared;
+    }
+  }
+  if (mp.wi6 != -1 and mp.tdc6 != -1){
+    ++SL3;
+    if (mp.wi6 == second_mp.wi6 and mp.tdc6 == second_mp.tdc6){
+      ++SL3_shared;
+    }
+  }
+  if (mp.wi7 != -1 and mp.tdc7 != -1){
+    ++SL3;
+    if (mp.wi7 == second_mp.wi7 and mp.tdc7 == second_mp.tdc7){
+      ++SL3_shared;
+    }
+  }
+  if (mp.wi8 != -1 and mp.tdc8 != -1){
+    ++SL3;
+    if (mp.wi8 == second_mp.wi8 and mp.tdc8 == second_mp.tdc8){
+      ++SL3_shared;
+    }
+  }
+
+  // If the two mp share all hits in a SL, we consider that they share that SL
+  if (SL1_shared == SL1 || SL3_shared == SL3)
+    output = 1;
+
+  return output;
+}
+
+int MPQualityEnhancerFilterBayes::BX(metaPrimitive mp){
+  int bx;
+  bx = (int)round(mp.t0 / (float)LHC_CLK_FREQ);
+  return bx;
+}
+
 // Is this really needed?
 int MPQualityEnhancerFilterBayes::rango(metaPrimitive mp) {
   // Correlated
@@ -181,21 +261,38 @@ void MPQualityEnhancerFilterBayes::filterCousins(std::vector<metaPrimitive> &inM
 	// Case they are cousins, keep the best one
 	if (areCousins(inMPaths[i], inMPaths[j]) != 0) {	  
 	  cout << "They are cousins" << endl;
+
+	  // In case both are correlated, they have to share a full SL         
+	  if (inMPaths[i].quality > 5 && inMPaths[j].quality > 5 && shareSL(inMPaths[i], inMPaths[j]) == 0) {
+	    cout << "But don't share a whole SL" << endl;
+	    continue;
+	  }
+	  
 	  // Compare only if rango is the same (both correlated or both not-correlated)
 	  // if (rango(inMPaths[i]) != rango(inMPaths[j])) continue;
+
 	  // If rango is the same, keep higher quality one
-	  if (inMPaths[i].quality > inMPaths[j].quality)
-	    keep_this[j] = false;
-	  else if (inMPaths[i].quality < inMPaths[j].quality)
-	    keep_this[i] = false;
+	  // Still, keep lower-quality one if it has lower Chi2 
+	  // and if its BX is different to the higher-quality one
+	  if (inMPaths[i].quality > inMPaths[j].quality){
+	    if ( (inMPaths[i].chi2 < inMPaths[j].chi2)
+		 || BX(inMPaths[i]) == BX(inMPaths[j]) )
+	      keep_this[j] = false;
+	  }
+	  else if (inMPaths[i].quality < inMPaths[j].quality){
+	    if ( (inMPaths[i].chi2 > inMPaths[j].chi2)
+		 || BX(inMPaths[i]) == BX(inMPaths[j]) )
+	      keep_this[i] = false;
+	  }
 	  else{ // if they have same quality
 	    // If quality is 8, keep both
 	    // if (inMPaths[i].quality >= 8) continue;
 	    // Otherwise, keep the one with better Chi2
-	    //else{
-	    if (inMPaths[i].chi2 > inMPaths[j].chi2)	
+	    // and also the one with worse Chi2 if its BX is different
+	    // else{
+	    if (inMPaths[i].chi2 > inMPaths[j].chi2 && BX(inMPaths[i]) == BX(inMPaths[j]))
 	      keep_this[i] = false;
-	    else if (inMPaths[i].chi2 < inMPaths[j].chi2)
+	    else if (inMPaths[i].chi2 < inMPaths[j].chi2 && BX(inMPaths[i]) == BX(inMPaths[j]))
 	      keep_this[j] = false;
 	    else continue;
 	    //}
