@@ -177,6 +177,13 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
   produces<L1Phase2MuDTThContainer>();
   produces<L1Phase2MuDTExtThContainer>();
 
+  produces<L1Phase2MuDTPhContainer>("grouping").setBranchAlias("groupingCandidates");
+  produces<L1Phase2MuDTExtPhContainer>("grouping").setBranchAlias("groupingCandidates");
+
+  produces<L1Phase2MuDTPhContainer>("fitting").setBranchAlias("fittingCandidates");
+  produces<L1Phase2MuDTExtPhContainer>("fitting").setBranchAlias("fittingCandidates");
+
+
   debug_ = pset.getUntrackedParameter<bool>("debug");
   dump_ = pset.getUntrackedParameter<bool>("dump");
   
@@ -376,12 +383,241 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   // FILTER GROUPING
   MuonPathPtrs filteredmuonpaths;
+  std::vector<metaPrimitive> groupingMetaPrimitives;
   if (algo_ == Standard) {
     mpathredundantfilter_->run(iEvent, iEventSetup, muonpaths, filteredmuonpaths);
   }
   else {
     mpathhitsfilter_->run(iEvent, iEventSetup, muonpaths, filteredmuonpaths);
+
+    // Move filteredmuonpaths to metaprimitive format, in order to store it
+    for (const auto& muonpath : filteredmuonpaths) {
+
+      // Raw ID 
+      int rawid = 0;
+      for (int i = 0; i < muonpath->nprimitives(); i++) {
+	if (muonpath->primitive(i)->isValidTime()) {
+	  rawid = muonpath->primitive(i)->cameraId();
+	  // muonpath->setRawId(rawid);
+	  break;
+	}
+      }
+      
+      // Quality
+      int quality = 0;
+      if (muonpath->nprimitivesUp() >= 4 && muonpath->nprimitivesDown() >= 4) {
+	muonpath->setQuality(HIGHHIGHQ);
+      } 
+      else if ((muonpath->nprimitivesUp() == 4 && muonpath->nprimitivesDown() == 3) ||
+	       (muonpath->nprimitivesUp() == 3 && muonpath->nprimitivesDown() == 4)) {
+	muonpath->setQuality(HIGHLOWQ);
+      } 
+      // else if ((muonpath->nprimitivesUp() == 4 && muonpath->nprimitivesDown() <= 2 && muonpath->nprimitivesDown() > 0) ||
+      //            (muonpath->nprimitivesUp() <= 2 && muonpath->nprimitivesUp() > 0 && muonpath->nprimitivesDown() == 4)) {
+      //   muonpath->setQuality(CHIGHQ);
+      // } 
+      else if ((muonpath->nprimitivesUp() == 4 && muonpath->nprimitivesDown() == 2) ||
+	       (muonpath->nprimitivesUp() == 2 && muonpath->nprimitivesDown() == 4)) {
+	muonpath->setQuality(CHIGHQ);
+      } 
+      else if ((muonpath->nprimitivesUp() == 3 && muonpath->nprimitivesDown() == 3)) {
+	muonpath->setQuality(LOWLOWQ);
+      } 
+      // else if ((muonpath->nprimitivesUp() == 3 && muonpath->nprimitivesDown() <= 2 && muonpath->nprimitivesDown() > 0) ||
+      //            (muonpath->nprimitivesUp() <= 2 && muonpath->nprimitivesUp() > 0 && muonpath->nprimitivesDown() == 3) ||
+      //            (muonpath->nprimitivesUp() == 2 && muonpath->nprimitivesDown() == 2)) {
+      //   muonpath->setQuality(CLOWQ);
+      // } 
+      else if ((muonpath->nprimitivesUp() == 3 && muonpath->nprimitivesDown() == 2) ||
+	       (muonpath->nprimitivesUp() == 2 && muonpath->nprimitivesDown() == 3)) {
+	muonpath->setQuality(CLOWQ);
+      } 
+      else if (muonpath->nprimitivesUp() >= 4 || muonpath->nprimitivesDown() >= 4) {
+	muonpath->setQuality(HIGHQ);
+      } 
+      else if (muonpath->nprimitivesUp() == 3 || muonpath->nprimitivesDown() == 3) {
+	muonpath->setQuality(LOWQ);
+      }
+      
+      cout << "Raw ID (muonpath, after): " << rawid << endl;
+      cout << "Quality: " << quality << endl;
+      
+      groupingMetaPrimitives.emplace_back(rawid,
+    					  (double)muonpath->bxTimeValue(),
+    					  muonpath->horizPos(),
+    					  muonpath->tanPhi(),
+    					  muonpath->phi(),
+    					  muonpath->phiB(),
+    					  muonpath->phi_cmssw(),
+    					  muonpath->phiB_cmssw(),
+    					  muonpath->chiSquare(),
+    					  (int)quality,
+    					  muonpath->primitive(0)->channelId(),
+    					  muonpath->primitive(0)->tdcTimeStamp(),
+    					  muonpath->primitive(0)->laterality(),
+    					  muonpath->primitive(1)->channelId(),
+    					  muonpath->primitive(1)->tdcTimeStamp(),
+    					  muonpath->primitive(1)->laterality(),
+    					  muonpath->primitive(2)->channelId(),
+    					  muonpath->primitive(2)->tdcTimeStamp(),
+    					  muonpath->primitive(2)->laterality(),
+    					  muonpath->primitive(3)->channelId(),
+    					  muonpath->primitive(3)->tdcTimeStamp(),
+    					  muonpath->primitive(3)->laterality(),
+    					  muonpath->primitive(4)->channelId(),
+    					  muonpath->primitive(4)->tdcTimeStamp(),
+    					  muonpath->primitive(4)->laterality(),
+    					  muonpath->primitive(5)->channelId(),
+    					  muonpath->primitive(5)->tdcTimeStamp(),
+    					  muonpath->primitive(5)->laterality(),
+    					  muonpath->primitive(6)->channelId(),
+    					  muonpath->primitive(6)->tdcTimeStamp(),
+    					  muonpath->primitive(6)->laterality(),
+    					  muonpath->primitive(7)->channelId(),
+    					  muonpath->primitive(7)->tdcTimeStamp(),
+    					  muonpath->primitive(7)->laterality());
+    }
+
+    // STORING GROUPING RESULT
+    vector<L1Phase2MuDTPhDigi> groupP2Ph;
+    vector<L1Phase2MuDTExtPhDigi> groupExtP2Ph;
+    
+    double shift_back = 0;
+    if (scenario_ == MC)  //scope for MC
+      shift_back = 400;
+    else if (scenario_ == DATA)  //scope for data
+      shift_back = 0;
+    else if (scenario_ == SLICE_TEST)  //scope for slice test
+      shift_back = 400;
+    
+    //   cout << shift_back << endl;
+
+    // Assigning index value
+    assignIndex(groupingMetaPrimitives);
+    for (const auto& metaPrimitiveIt : groupingMetaPrimitives) {
+      DTChamberId chId(metaPrimitiveIt.rawId);
+      DTSuperLayerId slId(metaPrimitiveIt.rawId);
+      
+      int sectorTP = chId.sector();
+      //sectors 13 and 14 exist only for the outermost stations for sectors 4 and 10 respectively
+      //due to the larger MB4 that are divided into two.
+      if (sectorTP == 13)
+      	sectorTP = 4;
+      if (sectorTP == 14)
+      	sectorTP = 10;
+      sectorTP = sectorTP - 1;
+      int sl = 0;
+      if (metaPrimitiveIt.quality < LOWLOWQ || metaPrimitiveIt.quality == CHIGHQ) {
+      	if (inner(metaPrimitiveIt))
+      	  sl = 1;
+      	else
+      	  sl = 3;
+      }
+
+      if (df_extended_ == 1 || df_extended_ == 2){
+	
+    	int pathWireId[8] = {metaPrimitiveIt.wi1,metaPrimitiveIt.wi2,metaPrimitiveIt.wi3,metaPrimitiveIt.wi4,
+    			     metaPrimitiveIt.wi5,metaPrimitiveIt.wi6,metaPrimitiveIt.wi7,metaPrimitiveIt.wi8};
+	
+    	int pathTDC[8] = {max((int)round(metaPrimitiveIt.tdc1 - shift_back * LHC_CLK_FREQ), -1),
+    			  max((int)round(metaPrimitiveIt.tdc2 - shift_back * LHC_CLK_FREQ), -1),
+    			  max((int)round(metaPrimitiveIt.tdc3 - shift_back * LHC_CLK_FREQ), -1),
+    			  max((int)round(metaPrimitiveIt.tdc4 - shift_back * LHC_CLK_FREQ), -1),
+    			  max((int)round(metaPrimitiveIt.tdc5 - shift_back * LHC_CLK_FREQ), -1),
+    			  max((int)round(metaPrimitiveIt.tdc6 - shift_back * LHC_CLK_FREQ), -1),
+    			  max((int)round(metaPrimitiveIt.tdc7 - shift_back * LHC_CLK_FREQ), -1),
+    			  max((int)round(metaPrimitiveIt.tdc8 - shift_back * LHC_CLK_FREQ), -1)};
+	
+    	int pathLat[8] = {metaPrimitiveIt.lat1,metaPrimitiveIt.lat2,metaPrimitiveIt.lat3,metaPrimitiveIt.lat4,
+    			  metaPrimitiveIt.lat5,metaPrimitiveIt.lat6,metaPrimitiveIt.lat7,metaPrimitiveIt.lat8};
+	
+	
+    	cout << "Storing grouping results" << endl;
+
+    	cout << "BX: "         << (int)round(metaPrimitiveIt.t0 / (float)LHC_CLK_FREQ) - shift_back << endl;
+    	cout << "Wheel: "      << chId.wheel() << endl;
+    	cout << "Sector: "     << sectorTP << endl;
+    	cout << "Station "     << chId.station() << endl;
+    	cout << "SL: "         << sl << endl;
+    	cout << "Phi: "        << (int)round(metaPrimitiveIt.phi * PHIRES_CONV) << endl;
+    	cout << "phiB: "       << (int)round(metaPrimitiveIt.phiB * PHIBRES_CONV) << endl;
+    	cout << "Quality: "    << metaPrimitiveIt.quality << endl;
+    	cout << "Index: "      << metaPrimitiveIt.index << endl;
+    	cout << "t0: "         << (int)round(metaPrimitiveIt.t0) - shift_back * LHC_CLK_FREQ << endl;
+    	cout << "Chi2: "       << (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV) << endl;
+    	cout << "x local: "    << (int)round(metaPrimitiveIt.x * 1000) << endl;
+    	cout << "tan psi: "    << (int)round(metaPrimitiveIt.tanPhi * 1000) << endl;
+    	cout << "phi: "        << (int)round(metaPrimitiveIt.phi_cmssw * 65536. / 0.8) << endl;
+    	cout << "phiB: "       << (int)round(metaPrimitiveIt.phiB_cmssw * 2048. / 1.4) << endl;
+    	cout << "RPC flag "    << metaPrimitiveIt.rpcFlag << endl;
+    	cout << "wire ID: "    << pathWireId << endl;
+    	cout << "TDC: "        << pathTDC << endl;
+    	cout << "Laterality: " << pathLat << endl;
+	  
+
+    	// phiTP (extended DF)    
+    	groupExtP2Ph.emplace_back(L1Phase2MuDTExtPhDigi(
+    							(int)round(metaPrimitiveIt.t0 / (float)LHC_CLK_FREQ) - shift_back,
+    							chId.wheel(),                                                // uwh   (m_wheel)
+    							sectorTP,                                                    // usc   (m_sector)
+    							chId.station(),                                              // ust   (m_station)
+    							sl,                                                          // ust   (m_station)
+    							(int)round(metaPrimitiveIt.phi * PHIRES_CONV),               // uphi  (m_phiAngle)
+    							(int)round(metaPrimitiveIt.phiB * PHIBRES_CONV),             // uphib (m_phiBending)
+    							metaPrimitiveIt.quality,                                     // uqua  (m_qualityCode)
+    							metaPrimitiveIt.index,                                       // uind  (m_segmentIndex)
+    							(int)round(metaPrimitiveIt.t0) - shift_back * LHC_CLK_FREQ,  // ut0   (m_t0Segment)
+    							(int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
+    							(int)round(metaPrimitiveIt.x * 1000),                        // ux    (m_xLocal)
+    							(int)round(metaPrimitiveIt.tanPhi * 1000),                   // utan  (m_tanPsi)
+    							(int)round(metaPrimitiveIt.phi_cmssw * 65536. / 0.8),        // uphi  (m_phiAngleCMSSW)
+    							(int)round(metaPrimitiveIt.phiB_cmssw * 2048. / 1.4),        // uphib (m_phiBendingCMSSW)
+    							metaPrimitiveIt.rpcFlag,                                     // urpc  (m_rpcFlag)
+    							pathWireId,
+    							pathTDC,
+    							pathLat
+    							));
+      }
+      if (df_extended_ == 0 || df_extended_ == 2){
+    	// phiTP (standard DF)    
+    	groupP2Ph.emplace_back(L1Phase2MuDTPhDigi(
+    						  (int)round(metaPrimitiveIt.t0 / (float)LHC_CLK_FREQ) - shift_back,
+    						  chId.wheel(),                                                // uwh   (m_wheel)
+    						  sectorTP,                                                    // usc   (m_sector)
+    						  chId.station(),                                              // ust   (m_station)
+    						  sl,                                                          // ust   (m_station)
+    						  (int)round(metaPrimitiveIt.phi * PHIRES_CONV),               // uphi  (m_phiAngle)
+    						  (int)round(metaPrimitiveIt.phiB * PHIBRES_CONV),             // uphib (m_phiBending)
+    						  metaPrimitiveIt.quality,                                     // uqua  (m_qualityCode)
+    						  metaPrimitiveIt.index,                                       // uind  (m_segmentIndex)
+    						  (int)round(metaPrimitiveIt.t0) - shift_back * LHC_CLK_FREQ,  // ut0   (m_t0Segment)
+    						  (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
+    						  metaPrimitiveIt.rpcFlag                                      // urpc  (m_rpcFlag)
+    						  ));
+      }
+    }
+    
+    // Storing Phi results
+    if (df_extended_ == 1 || df_extended_ == 2) {
+      cout << "I am storing the extended phi results after group" << endl;
+      std::unique_ptr<L1Phase2MuDTExtPhContainer> groupResultExtP2Ph(new L1Phase2MuDTExtPhContainer);
+      groupResultExtP2Ph->setContainer(groupExtP2Ph);
+      iEvent.put(std::move(groupResultExtP2Ph), "grouping");
+    }
+    if (df_extended_ == 0 || df_extended_ == 2) {
+      cout << "I am storing the phi results after group" << endl;
+      std::unique_ptr<L1Phase2MuDTPhContainer> groupResultP2Ph(new L1Phase2MuDTPhContainer);
+      groupResultP2Ph->setContainer(groupP2Ph);
+      iEvent.put(std::move(groupResultP2Ph), "grouping");
+    }
+    groupExtP2Ph.clear();
+    groupExtP2Ph.erase(groupExtP2Ph.begin(), groupExtP2Ph.end());
+    groupP2Ph.clear();
+    groupP2Ph.erase(groupP2Ph.begin(), groupP2Ph.end());
+
   }
+  
+
 
   if (dump_) {
     for (unsigned int i = 0; i < filteredmuonpaths.size(); i++) {
@@ -417,6 +653,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   if (debug_)
     LogDebug("DTTrigPhase2Prod") << "filling NmetaPrimtives" << std::endl;
   std::vector<metaPrimitive> metaPrimitives;
+  std::vector<metaPrimitive> fittingMetaPrimitives;
   MuonPathPtrs outmpaths;
   if (algo_ == Standard) {
     if (debug_)
@@ -428,7 +665,181 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       LogDebug("DTTrigPhase2Prod") << "Fitting 2SL at once ";
     //mpathanalyzer_->run(iEvent, iEventSetup, muonpaths, outmpaths);
     mpathanalyzer_->run(iEvent, iEventSetup, filteredmuonpaths, outmpaths);
+
+    // Move filteredmuonpaths to metaprimitive format, in order to store it
+    for (const auto& muonpath : outmpaths) {
+      fittingMetaPrimitives.emplace_back(muonpath->rawId(),
+					 (double)muonpath->bxTimeValue(),
+					 muonpath->horizPos(),
+					 muonpath->tanPhi(),
+					 muonpath->phi(),
+					 muonpath->phiB(),
+					 muonpath->phi_cmssw(),
+					 muonpath->phiB_cmssw(),
+					 muonpath->chiSquare(),
+					 (int)muonpath->quality(),
+					 muonpath->primitive(0)->channelId(),
+					 muonpath->primitive(0)->tdcTimeStamp(),
+					 muonpath->primitive(0)->laterality(),
+					 muonpath->primitive(1)->channelId(),
+					 muonpath->primitive(1)->tdcTimeStamp(),
+					 muonpath->primitive(1)->laterality(),
+					 muonpath->primitive(2)->channelId(),
+					 muonpath->primitive(2)->tdcTimeStamp(),
+					 muonpath->primitive(2)->laterality(),
+					 muonpath->primitive(3)->channelId(),
+					 muonpath->primitive(3)->tdcTimeStamp(),
+					 muonpath->primitive(3)->laterality(),
+					 muonpath->primitive(4)->channelId(),
+					 muonpath->primitive(4)->tdcTimeStamp(),
+					 muonpath->primitive(4)->laterality(),
+					 muonpath->primitive(5)->channelId(),
+					 muonpath->primitive(5)->tdcTimeStamp(),
+					 muonpath->primitive(5)->laterality(),
+					 muonpath->primitive(6)->channelId(),
+					 muonpath->primitive(6)->tdcTimeStamp(),
+					 muonpath->primitive(6)->laterality(),
+					 muonpath->primitive(7)->channelId(),
+					 muonpath->primitive(7)->tdcTimeStamp(),
+					 muonpath->primitive(7)->laterality());
+    }
+    
+    // STORING FITTING RESULT
+    vector<L1Phase2MuDTPhDigi> fitP2Ph;
+    vector<L1Phase2MuDTExtPhDigi> fitExtP2Ph;
+   
+    double shift_back = 0;
+    if (scenario_ == MC)  //scope for MC
+      shift_back = 400;
+    else if (scenario_ == DATA)  //scope for data
+      shift_back = 0;
+    else if (scenario_ == SLICE_TEST)  //scope for slice test
+      shift_back = 400;
+
+    // Assigning index value
+    assignIndex(fittingMetaPrimitives);
+    for (const auto& metaPrimitiveIt : fittingMetaPrimitives) {
+      DTChamberId chId(metaPrimitiveIt.rawId);
+      DTSuperLayerId slId(metaPrimitiveIt.rawId);
+
+      int sectorTP = chId.sector();
+      //sectors 13 and 14 exist only for the outermost stations for sectors 4 and 10 respectively
+      //due to the larger MB4 that are divided into two.
+      if (sectorTP == 13)
+	sectorTP = 4;
+      if (sectorTP == 14)
+	sectorTP = 10;
+      sectorTP = sectorTP - 1;
+      int sl = 0;
+      if (metaPrimitiveIt.quality < LOWLOWQ || metaPrimitiveIt.quality == CHIGHQ) {
+	if (inner(metaPrimitiveIt))
+	  sl = 1;
+	else
+	  sl = 3;
+      }
+
+      if (df_extended_ == 1 || df_extended_ == 2){
+	
+	int pathWireId[8] = {metaPrimitiveIt.wi1,metaPrimitiveIt.wi2,metaPrimitiveIt.wi3,metaPrimitiveIt.wi4,
+			     metaPrimitiveIt.wi5,metaPrimitiveIt.wi6,metaPrimitiveIt.wi7,metaPrimitiveIt.wi8};
+	
+	int pathTDC[8] = {max((int)round(metaPrimitiveIt.tdc1 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc2 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc3 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc4 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc5 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc6 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc7 - shift_back * LHC_CLK_FREQ), -1),
+			  max((int)round(metaPrimitiveIt.tdc8 - shift_back * LHC_CLK_FREQ), -1)};
+	
+	int pathLat[8] = {metaPrimitiveIt.lat1,metaPrimitiveIt.lat2,metaPrimitiveIt.lat3,metaPrimitiveIt.lat4,
+			  metaPrimitiveIt.lat5,metaPrimitiveIt.lat6,metaPrimitiveIt.lat7,metaPrimitiveIt.lat8};
+	
+	
+	cout << "Storing fitting results" << endl;
+
+	cout << "BX: " << (int)round(metaPrimitiveIt.t0 / (float)LHC_CLK_FREQ) - shift_back << endl;
+	cout << "Wheel: " << chId.wheel() << endl;
+	cout << "Sector: " << sectorTP << endl;
+	cout << "Station " << chId.station() << endl;
+	cout << "SL: " << sl << endl;
+	cout << "Phi: " << (int)round(metaPrimitiveIt.phi * PHIRES_CONV) << endl;
+	cout << "phiB: " << (int)round(metaPrimitiveIt.phiB * PHIBRES_CONV) << endl;
+	cout << "Quality: " << metaPrimitiveIt.quality << endl;
+	cout << "Index: " << metaPrimitiveIt.index << endl;
+	cout << "t0: " << (int)round(metaPrimitiveIt.t0) - shift_back * LHC_CLK_FREQ << endl;
+	cout << "Chi2: " << (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV) << endl;
+	cout << "x local: " << (int)round(metaPrimitiveIt.x * 1000) << endl;
+	cout << "tan psi: " << (int)round(metaPrimitiveIt.tanPhi * 1000) << endl;
+	cout << "phi: " << (int)round(metaPrimitiveIt.phi_cmssw * 65536. / 0.8) << endl;
+	cout << "phiB: " << (int)round(metaPrimitiveIt.phiB_cmssw * 2048. / 1.4) << endl;
+	cout << "RPC flag " << metaPrimitiveIt.rpcFlag << endl;
+	cout << "wire ID: " << pathWireId << endl;
+	cout << "TDC: " << pathTDC << endl;
+	cout << "Laterality: " << pathLat << endl;
+	  
+
+	// phiTP (extended DF)    
+	fitExtP2Ph.emplace_back(L1Phase2MuDTExtPhDigi(
+						      (int)round(metaPrimitiveIt.t0 / (float)LHC_CLK_FREQ) - shift_back,
+						      chId.wheel(),                                                // uwh   (m_wheel)
+						      sectorTP,                                                    // usc   (m_sector)
+						      chId.station(),                                              // ust   (m_station)
+						      sl,                                                          // ust   (m_station)
+						      (int)round(metaPrimitiveIt.phi * PHIRES_CONV),               // uphi  (m_phiAngle)
+						      (int)round(metaPrimitiveIt.phiB * PHIBRES_CONV),             // uphib (m_phiBending)
+						      metaPrimitiveIt.quality,                                     // uqua  (m_qualityCode)
+						      metaPrimitiveIt.index,                                       // uind  (m_segmentIndex)
+						      (int)round(metaPrimitiveIt.t0) - shift_back * LHC_CLK_FREQ,  // ut0   (m_t0Segment)
+						      (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
+						      (int)round(metaPrimitiveIt.x * 1000),                        // ux    (m_xLocal)
+						      (int)round(metaPrimitiveIt.tanPhi * 1000),                   // utan  (m_tanPsi)
+						      (int)round(metaPrimitiveIt.phi_cmssw * 65536. / 0.8),        // uphi  (m_phiAngleCMSSW)
+						      (int)round(metaPrimitiveIt.phiB_cmssw * 2048. / 1.4),        // uphib (m_phiBendingCMSSW)
+						      metaPrimitiveIt.rpcFlag,                                     // urpc  (m_rpcFlag)
+						      pathWireId,
+						      pathTDC,
+						      pathLat
+						      ));
+      }
+      if (df_extended_ == 0 || df_extended_ == 2){
+	// phiTP (standard DF)    
+	fitP2Ph.emplace_back(L1Phase2MuDTPhDigi(
+						(int)round(metaPrimitiveIt.t0 / (float)LHC_CLK_FREQ) - shift_back,
+						chId.wheel(),                                                // uwh   (m_wheel)
+						sectorTP,                                                    // usc   (m_sector)
+						chId.station(),                                              // ust   (m_station)
+						sl,                                                          // ust   (m_station)
+						(int)round(metaPrimitiveIt.phi * PHIRES_CONV),               // uphi  (m_phiAngle)
+						(int)round(metaPrimitiveIt.phiB * PHIBRES_CONV),             // uphib (m_phiBending)
+						metaPrimitiveIt.quality,                                     // uqua  (m_qualityCode)
+						metaPrimitiveIt.index,                                       // uind  (m_segmentIndex)
+						(int)round(metaPrimitiveIt.t0) - shift_back * LHC_CLK_FREQ,  // ut0   (m_t0Segment)
+						(int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
+						metaPrimitiveIt.rpcFlag                                      // urpc  (m_rpcFlag)
+						));
+      }
+    }
+    
+    // Storing Phi results
+    if (df_extended_ == 1 || df_extended_ == 2) {
+      cout << "I am storing the extended phi results after fit" << endl;
+      std::unique_ptr<L1Phase2MuDTExtPhContainer> fitResultExtP2Ph(new L1Phase2MuDTExtPhContainer);
+      fitResultExtP2Ph->setContainer(fitExtP2Ph);
+      iEvent.put(std::move(fitResultExtP2Ph), "fitting");
+    }
+    if (df_extended_ == 0 || df_extended_ == 2) {
+      cout << "I am storing the phi results after fit" << endl;
+      std::unique_ptr<L1Phase2MuDTPhContainer> fitResultP2Ph(new L1Phase2MuDTPhContainer);
+      fitResultP2Ph->setContainer(fitP2Ph);
+      iEvent.put(std::move(fitResultP2Ph), "fitting");
+    }
+    fitExtP2Ph.clear();
+    fitExtP2Ph.erase(fitExtP2Ph.begin(), fitExtP2Ph.end());
+    fitP2Ph.clear();
+    fitP2Ph.erase(fitP2Ph.begin(), fitP2Ph.end());
   }
+
 
   //   cout << "Done fitting. We have " << outmpaths.size() << " paths." << endl;
 
@@ -465,6 +876,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   muonpaths.clear();
   filteredmuonpaths.clear();
+  fittingMetaPrimitives.clear();
 
   /////////////////////////////////////
   //  FILTER SECTIONS:
