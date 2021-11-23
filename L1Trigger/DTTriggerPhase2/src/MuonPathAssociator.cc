@@ -506,6 +506,11 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                 lat4 = best_lat;
               }
 
+	      if (wi1 != -1) wi1 = wi1 - 1;
+	      if (wi2 != -1) wi2 = wi2 - 1;
+	      if (wi3 != -1) wi3 = wi3 - 1;
+	      if (wi4 != -1) wi4 = wi4 - 1;
+
               if (!clean_chi2_correlation_)
                 outMPaths.emplace_back(metaPrimitive({ChId.rawId(),
                                                       SL1metaPrimitive->t0,
@@ -739,6 +744,11 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                 tdc4 = best_tdc;
                 lat4 = best_lat;
               }
+
+	      if (wi1 != -1) wi1 = wi1 - 1;
+	      if (wi2 != -1) wi2 = wi2 - 1;
+	      if (wi3 != -1) wi3 = wi3 - 1;
+	      if (wi4 != -1) wi4 = wi4 - 1;
 
               if (!clean_chi2_correlation_)
                 outMPaths.push_back(metaPrimitive({ChId.rawId(),

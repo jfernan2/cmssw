@@ -156,12 +156,16 @@ void PseudoBayesGrouping::LoadPattern(TString pattern_file_name,
       else {
 	if (itHits.begin() == itHits.end())
 	  continue;
-	//We need to correct the geometry from pattern generation to reconstruction as they use slightly displaced basis
-	else if (itHits.at(0) % 2 == 0) {
-	  p->addHit(std::make_tuple(itHits.at(0), itHits.at(1), itHits.at(2)));
-	} else if (itHits.at(0) % 2 == 1) {
-	  p->addHit(std::make_tuple(itHits.at(0), itHits.at(1) - 1, itHits.at(2)));
-	}
+
+	// //We need to correct the geometry from pattern generation to reconstruction as they use slightly displaced basis
+	// else if (itHits.at(0) % 2 == 0) {
+	//   p->addHit(std::make_tuple(itHits.at(0), itHits.at(1), itHits.at(2)));
+	// } else if (itHits.at(0) % 2 == 1) {
+	//   p->addHit(std::make_tuple(itHits.at(0), itHits.at(1) - 1, itHits.at(2)));
+	// }
+
+	p->addHit(std::make_tuple(itHits.at(0), itHits.at(1), itHits.at(2)));
+
       }
     }
     //Classified by seeding layers for optimized search later
