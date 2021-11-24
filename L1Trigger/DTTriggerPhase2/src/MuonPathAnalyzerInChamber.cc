@@ -19,26 +19,28 @@ MuonPathAnalyzerInChamber::MuonPathAnalyzerInChamber(const ParameterSet &pset, e
       minHits4Fit_(pset.getUntrackedParameter<int>("minHits4Fit")),
       splitPathPerSL_(pset.getUntrackedParameter<bool>("splitPathPerSL")){
   // Obtention of parameters
-
+  
   if (debug_)
     LogDebug("MuonPathAnalyzerInChamber") << "MuonPathAnalyzer: constructor";
 
+  cout << "splitPathPerSL: " << splitPathPerSL_ << endl;
+
   // setChiSquareThreshold(chi2Th_ * 100.);
   setChiSquareThreshold(chi2Th_ * 10000.);
-
+  
   //shift
   int rawId;
   std::ifstream ifin3(shift_filename_.fullPath());
   double shift;
   if (ifin3.fail()) {
     throw cms::Exception("Missing Input File")
-        << "MuonPathAnalyzerInChamber::MuonPathAnalyzerInChamber() -  Cannot find " << shift_filename_.fullPath();
+      << "MuonPathAnalyzerInChamber::MuonPathAnalyzerInChamber() -  Cannot find " << shift_filename_.fullPath();
   }
   while (ifin3.good()) {
     ifin3 >> rawId >> shift;
     shiftinfo_[rawId] = shift;
   }
-
+  
   dtGeomH = iC.esConsumes<DTGeometry, MuonGeometryRecord, edm::Transition::BeginRun>();
   globalcoordsobtainer_ = globalcoordsobtainer;
 }
@@ -66,7 +68,11 @@ void MuonPathAnalyzerInChamber::run(edm::Event &iEvent,
   if (debug_)
     LogDebug("MuonPathAnalyzerInChamber") << "MuonPathAnalyzerInChamber: run";
 
+  cout << "MuonPathAnalyzerInChamber - MuonPathAnalyzerInChamber: run" << endl;
+
   // fit per SL (need to allow for multiple outputs for a single mpath)
+  int primUp   = 0;
+  int primDown = 0;
   int nMuonPath_counter = 0;
   for (auto muonpath = muonpaths.begin(); muonpath != muonpaths.end(); ++muonpath) {
     
@@ -81,36 +87,61 @@ void MuonPathAnalyzerInChamber::run(edm::Event &iEvent,
     // Define muonpaths for up/down SL only
     MuonPathPtr muonpathUp_ptr = std::make_shared<MuonPath>();
     muonpathUp_ptr->setNPrimitives(8);
-    muonpathUp_ptr->setNPrimitivesUp(muonpath->get()->nprimitivesUp());
-    muonpathUp_ptr->setNPrimitivesDown(0);
+    // muonpathUp_ptr->setNPrimitivesUp(muonpath->get()->nprimitivesUp());
+    // muonpathUp_ptr->setNPrimitivesDown(0);
 
     MuonPathPtr muonpathDown_ptr = std::make_shared<MuonPath>();
     muonpathDown_ptr->setNPrimitives(8);
-    muonpathDown_ptr->setNPrimitivesUp(0);
-    muonpathDown_ptr->setNPrimitivesDown(muonpath->get()->nprimitivesDown());
+    // muonpathDown_ptr->setNPrimitivesUp(0);
+    // muonpathDown_ptr->setNPrimitivesDown(muonpath->get()->nprimitivesDown());
 
+    primUp   = 0;
+    primDown = 0;
     for (int n = 0; n < muonpath->get()->nprimitives(); ++n){
       DTPrimitivePtr prim = muonpath->get()->primitive(n);
       // UP
       if (prim->superLayerId() == 3){
 	muonpathUp_ptr->setPrimitive(prim, n);
+	if (muonpathUp_ptr->primitive(n)->isValidTime())
+	  ++primUp;
       }
       // DOWN
       else if (prim->superLayerId() == 1){
 	muonpathDown_ptr->setPrimitive(prim, n);
+	if (muonpathDown_ptr->primitive(n)->isValidTime())
+	  ++primDown;
       }
       // NOT UP NOR DOWN
       else continue;
     }
     
+    muonpath->get()->setNPrimitivesUp(primUp);
+    muonpath->get()->setNPrimitivesDown(primDown);
+
+    muonpathUp_ptr->setNPrimitivesUp(primUp);
+    muonpathUp_ptr->setNPrimitivesDown(0);
+
+    muonpathDown_ptr->setNPrimitivesUp(0);
+    muonpathDown_ptr->setNPrimitivesDown(primDown);
+
+    cout << "Analyzing muon path " << nMuonPath_counter << 
+      ": n_primitives up   = " << muonpath->get()->nprimitivesUp() << 
+      ": n_primitives down = " << muonpathDown_ptr->nprimitivesDown() << 
+      ", n_primitives      = " << muonpath->get()->nprimitives() << endl;
+
     analyze(*muonpath, outmuonpaths);
 
     if (splitPathPerSL_){
-      if (muonpathUp_ptr->nprimitivesUp() > 1 && muonpath->get()->nprimitivesDown() > 0)
+      cout << "I am splitting per SL!" << endl;
+      if (muonpathUp_ptr->nprimitivesUp() > 1 && muonpathDown_ptr->nprimitivesDown() > 0){
+	cout << "Analyzing upper path" << endl;
 	analyze(muonpathUp_ptr, outmuonpaths);
+      }
 
-      if (muonpathDown_ptr->nprimitivesDown() > 1 && muonpath->get()->nprimitivesUp() > 0)
+      if (muonpathDown_ptr->nprimitivesDown() > 1 && muonpathUp_ptr->nprimitivesUp() > 0){
+	cout << "Analyzing lower path" << endl;
 	analyze(muonpathDown_ptr, outmuonpaths);
+      }
     }
   }
 }
@@ -776,25 +807,41 @@ void MuonPathAnalyzerInChamber::evaluateQuality(MuonPathPtr &mPath) {
     mPath->setQuality(HIGHHIGHQ);
   } 
   else if ((mPath->nprimitivesUp() == 4 && mPath->nprimitivesDown() == 3) ||
-             (mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 4)) {
+	   (mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 4)) {
     mPath->setQuality(HIGHLOWQ);
   } 
-  else if ((mPath->nprimitivesUp() == 4 && mPath->nprimitivesDown() <= 2 && mPath->nprimitivesDown() > 0) ||
-             (mPath->nprimitivesUp() <= 2 && mPath->nprimitivesUp() > 0 && mPath->nprimitivesDown() == 4)) {
+  // else if ((mPath->nprimitivesUp() == 4 && mPath->nprimitivesDown() <= 2 && mPath->nprimitivesDown() > 0) ||
+  //            (mPath->nprimitivesUp() <= 2 && mPath->nprimitivesUp() > 0 && mPath->nprimitivesDown() == 4)) {
+  //   mPath->setQuality(CHIGHQ);
+  // } 
+  else if ((mPath->nprimitivesUp() == 4 && mPath->nprimitivesDown() == 2) ||
+	   (mPath->nprimitivesUp() == 2 && mPath->nprimitivesDown() == 4)) {
     mPath->setQuality(CHIGHQ);
   } 
   else if ((mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 3)) {
     mPath->setQuality(LOWLOWQ);
   } 
-  else if ((mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() <= 2 && mPath->nprimitivesDown() > 0) ||
-             (mPath->nprimitivesUp() <= 2 && mPath->nprimitivesUp() > 0 && mPath->nprimitivesDown() == 3) ||
-             (mPath->nprimitivesUp() == 2 && mPath->nprimitivesDown() == 2)) {
+  // else if ((mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() <= 2 && mPath->nprimitivesDown() > 0) ||
+  //            (mPath->nprimitivesUp() <= 2 && mPath->nprimitivesUp() > 0 && mPath->nprimitivesDown() == 3) ||
+  //            (mPath->nprimitivesUp() == 2 && mPath->nprimitivesDown() == 2)) {
+  //   mPath->setQuality(CLOWQ);
+  // } 
+  else if ((mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 2) ||
+	   (mPath->nprimitivesUp() == 2 && mPath->nprimitivesDown() == 3)) {
     mPath->setQuality(CLOWQ);
   } 
-  else if (mPath->nprimitivesUp() >= 4 || mPath->nprimitivesDown() >= 4) {
+  // else if (mPath->nprimitivesUp() >= 4 || mPath->nprimitivesDown() >= 4) {
+  //   mPath->setQuality(HIGHQ);
+  // } 
+  // else if (mPath->nprimitivesUp() == 3 || mPath->nprimitivesDown() == 3) {
+  //   mPath->setQuality(LOWQ);
+  // }
+  else if ((mPath->nprimitivesUp() >= 4 && mPath->nprimitivesDown() == 0) || 
+	   (mPath->nprimitivesUp() == 0 && mPath->nprimitivesDown() >= 4)) {
     mPath->setQuality(HIGHQ);
   } 
-  else if (mPath->nprimitivesUp() == 3 || mPath->nprimitivesDown() == 3) {
+  else if ((mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 0) ||
+	   (mPath->nprimitivesUp() == 0 && mPath->nprimitivesDown() == 3)) {
     mPath->setQuality(LOWQ);
   }
 }
