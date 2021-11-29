@@ -37,7 +37,7 @@
 namespace cmsdt {
 
   // enum MP_QUALITY { NOPATH = 0, LOWQGHOST, LOWQ, HIGHQGHOST, HIGHQ, CLOWQ, LOWLOWQ, CHIGHQ, HIGHLOWQ, HIGHHIGHQ };
-  enum MP_QUALITY { NOPATH = 0, LOWQ = 1, CLOWQ = 2, HIGHQ = 3, CHIGHQ = 4, LOWLOWQ = 6, HIGHLOWQ = 7, HIGHHIGHQ = 8 };
+  enum MP_QUALITY { NOPATH = 0, LOWQ = 1, CLOWQ = 2, HIGHQ = 3, CHIGHQ = 4, BAYES = 5, LOWLOWQ = 6, HIGHLOWQ = 7, HIGHHIGHQ = 8 };
 
   // Tipos de lateralidad de traza de partícula al pasar por una celda
   enum LATERAL_CASES { LEFT = 0, RIGHT, NONE };

@@ -136,11 +136,13 @@ void MuonPathAnalyzerInChamber::run(edm::Event &iEvent,
       if (muonpathUp_ptr->nprimitivesUp() > 1 && muonpathDown_ptr->nprimitivesDown() > 0){
 	cout << "Analyzing upper path" << endl;
 	analyze(muonpathUp_ptr, outmuonpaths);
+	cout << "Upper path done" << endl;
       }
 
       if (muonpathDown_ptr->nprimitivesDown() > 1 && muonpathUp_ptr->nprimitivesUp() > 0){
 	cout << "Analyzing lower path" << endl;
 	analyze(muonpathDown_ptr, outmuonpaths);
+	cout << "Lower path done" << endl;
       }
     }
   }
@@ -190,7 +192,7 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
   //  for (int i = 0; i < totalNumValLateralities_; i++) {  // LOOP for all lateralities:
   for (int i = 0; i < (int)lateralities_.size(); i++) {  // LOOP for all lateralities:
 
-    cout << "Laterlity " << i << "/" << (int)lateralities_.size() << endl;
+    cout << "Laterality " << i << "/" << (int)lateralities_.size() << endl;
 
     if (debug_)
       LogDebug("MuonPathAnalyzerInChamber") << "DTp2:analyze \t\t\t\t\t Start with combination " << i;
@@ -339,13 +341,51 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
     mPath->setPhi(phi);
     mPath->setPhiB(phiB);
 
+    cout << "Chi2/ndof = " << mPath->chiSquare() << ", while best_chi2 = " << best_chi2 << endl;
     if (mPath->chiSquare() < best_chi2 && mPath->chiSquare() > 0) {
-      mpAux = std::make_shared<MuonPath>(mPath);
+      cout << "Looking at Chi2/ndof, I'll keep this path" << endl;
+      // mpAux = std::make_shared<MuonPath>(mPath);
+      // for (int ii = 0; ii < 8; ii++) {
+      // 	if (present_layer[ii] == 0){
+      // 	  mpAux->primitive(ii)->setTDCTimeStamp(-1);
+      // 	  mpAux->primitive(ii)->setChannelId(-1);
+      // 	  mpAux->primitive(ii)->setLaterality(NONE);
+      // 	}
+      mpAux = std::make_shared<MuonPath>();
+      for (int ii = 0; ii < 8; ii++) {
+	if (present_layer[ii] == 1){
+ 	  DTPrimitivePtr prim = mPath->primitive(ii);
+	  mpAux->setPrimitive(prim, ii);
+	}
+	else{
+ 	  DTPrimitivePtr prim =  std::make_shared<DTPrimitive>();
+	  mpAux->setPrimitive(prim, ii);
+	}
+      }
+      cout << "Evaluating mpAux" << endl;
+      evaluateQuality(mpAux);
+      if (mpAux->quality() < minQuality_)
+	continue;
+      mpAux->setRawId(mPath->rawId());
+      mpAux->setBaseChannelId(mPath->baseChannelId());
+      mpAux->setBxTimeValue(mPath->bxTimeValue());
+      mpAux->setTanPhi(mPath->tanPhi());
+      mpAux->setHorizPos(jm_x);
+      mpAux->setChiSquare(mPath->chiSquare());
+      mpAux->setPhi(phi);
+      mpAux->setPhiB(phiB);
+      mpAux->setPhiCMSSW(phi_cmssw);
+      mpAux->setPhiBCMSSW(hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? psi - phi_cmssw : -psi - phi_cmssw);
       bestI = i;
       best_chi2 = mPath->chiSquare();
     }
   }
-  if (mpAux != nullptr) {
+  if (mpAux != nullptr && mpAux->quality() >= minQuality_) {
+    cout << "This is my candidate: ";
+    for (int qq = 0; qq < 8; ++qq){
+      cout << mPath->primitive(qq)->channelId() << " (" << mPath->primitive(qq)->tdcTimeStamp() << "), ";
+    }
+    cout << "" << endl;
     outMPath.push_back(std::move(mpAux));
     if (debug_)
       LogDebug("MuonPathAnalyzerInChamber")
@@ -523,9 +563,12 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
   cout << "" << endl;
 
   int n_hits = 0;
+  cout << "present_layer: ";
   for (int l = 0; l < 8; ++l){
+    cout << present_layer[l] << ", ";
     if (present_layer[l] == 1) n_hits++;
   }
+  cout << "" << endl;
   cout << "Current path has " << n_hits << " hits" << endl;
 
   // First prepare mpath for fit:
@@ -680,11 +723,11 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
     	 // << ", recpos = " << recpos 
     	 << endl;
 
-    // If a hit is too close to the wire, set its corresponding "swap" flag to 1
-    if (abs(rectdriftvdrift[lay]) < 3){
-      cout << "Reconstructed hit position at less than 3 mm wrt wire!" << endl;
-      swap_laterality[lay] = 1;
-    }
+    // // If a hit is too close to the wire, set its corresponding "swap" flag to 1
+    // if (abs(rectdriftvdrift[lay]) < 3){
+    //   cout << "Reconstructed hit position at less than 3 mm wrt wire!" << endl;
+    //   swap_laterality[lay] = 1;
+    // }
 
     if ((present_layer[lay] == 1) && (rectdriftvdrift[lay] < -0.1)) {
       sign_tdriftvdrift = -1;
@@ -712,16 +755,16 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
     // of additional_lateralities and swap their laterality
     for (int swap = 0; swap < 8; ++swap){
       if (swap_laterality[swap] == 1){
-	int add_lat_size = int(additional_lateralities.size());
-	for (int ll = 0; ll < add_lat_size; ++ll){
-	  TLateralities tmp_lat = additional_lateralities[ll];
-	  if (tmp_lat[swap] == LEFT) 
-	    tmp_lat[swap] = RIGHT;
-	  else if (tmp_lat[swap] == RIGHT) 
-	    tmp_lat[swap] = LEFT;
-	  else continue;
-	  additional_lateralities.push_back(tmp_lat);
-	}
+  	int add_lat_size = int(additional_lateralities.size());
+  	for (int ll = 0; ll < add_lat_size; ++ll){
+  	  TLateralities tmp_lat = additional_lateralities[ll];
+  	  if (tmp_lat[swap] == LEFT) 
+  	    tmp_lat[swap] = RIGHT;
+  	  else if (tmp_lat[swap] == RIGHT) 
+  	    tmp_lat[swap] = LEFT;
+  	  else continue;
+  	  additional_lateralities.push_back(tmp_lat);
+  	}
       }
     }
     // Now compare all the additional lateralities with the lateralities we are considering:
@@ -730,12 +773,12 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
     for (int k = 0; k < int(additional_lateralities.size()); ++k){
       already_there = 0;
       for (int j = 0; j < int(lateralities_.size()); ++j){
-	if (additional_lateralities[k] == lateralities_[j]) 
-	  already_there = 1;
+  	if (additional_lateralities[k] == lateralities_[j]) 
+  	  already_there = 1;
       }
       if (already_there == 0){
-	lateralities_.push_back(additional_lateralities[k]);
-	cout << "I added one laterality!" << endl;
+  	lateralities_.push_back(additional_lateralities[k]);
+  	cout << "I added one laterality!" << endl;
       }
     }
     additional_lateralities.clear();
@@ -767,6 +810,10 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
   //LATERALITY IS NOT VALID
   if (true && maxInt != -1) {
     present_layer[maxInt] = 0;
+    // mpath->primitive(maxInt)->setTDCTimeStamp(-1);
+    // mpath->primitive(maxInt)->setChannelId(-1);
+    // mpath->primitive(maxInt)->setLaterality(NONE);
+    cout << "We get rid of hit in layer " << maxInt << endl;
     if (debug_)
       LogDebug("MuonPathAnalyzerInChamber") << "We get rid of hit in layer " << maxInt;
   }
@@ -789,8 +836,12 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
 void MuonPathAnalyzerInChamber::evaluateQuality(MuonPathPtr &mPath) {
   mPath->setQuality(NOPATH);
 
+  cout << "Assigning quality" << endl;
+
   int validHits(0),nPrimsUp(0),nPrimsDown(0);
   for (int i=0; i<NUM_LAYERS_2SL; i++) {
+
+    cout << mPath->primitive(i)->channelId() << " (" << mPath->primitive(i)->tdcTimeStamp() << "), ";
     
     if (mPath->primitive(i)->isValidTime()) {
       validHits++;       
@@ -799,6 +850,9 @@ void MuonPathAnalyzerInChamber::evaluateQuality(MuonPathPtr &mPath) {
     }
   }
   
+  cout << " " << endl;
+  cout << "the primitive has " << nPrimsDown << " hits in SL1 and " << nPrimsUp << " hits in SL3" << endl; 
+
   mPath->setNPrimitivesUp(nPrimsUp);
   mPath->setNPrimitivesDown(nPrimsDown);
   
@@ -836,12 +890,21 @@ void MuonPathAnalyzerInChamber::evaluateQuality(MuonPathPtr &mPath) {
   // else if (mPath->nprimitivesUp() == 3 || mPath->nprimitivesDown() == 3) {
   //   mPath->setQuality(LOWQ);
   // }
-  else if ((mPath->nprimitivesUp() >= 4 && mPath->nprimitivesDown() == 0) || 
-	   (mPath->nprimitivesUp() == 0 && mPath->nprimitivesDown() >= 4)) {
+  else if ((mPath->nprimitivesUp() == 4 && mPath->nprimitivesDown() == 0) || 
+	   (mPath->nprimitivesUp() == 0 && mPath->nprimitivesDown() == 4)) {
     mPath->setQuality(HIGHQ);
   } 
   else if ((mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 0) ||
 	   (mPath->nprimitivesUp() == 0 && mPath->nprimitivesDown() == 3)) {
     mPath->setQuality(LOWQ);
   }
+  else if ((mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 1) ||
+	   (mPath->nprimitivesUp() == 1 && mPath->nprimitivesDown() == 3) ||
+	   (mPath->nprimitivesUp() == 4 && mPath->nprimitivesDown() == 1) ||
+	   (mPath->nprimitivesUp() == 1 && mPath->nprimitivesDown() == 4) ||
+	   (mPath->nprimitivesUp() == 2 && mPath->nprimitivesDown() == 2)) {
+    mPath->setQuality(BAYES);
+  }
+
+  cout << "Quality = " << mPath->quality() << endl;
 }

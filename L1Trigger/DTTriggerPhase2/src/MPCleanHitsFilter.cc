@@ -19,18 +19,19 @@ void MPCleanHitsFilter::run(edm::Event &iEvent,
 			    MuonPathPtrs &inMPaths,
 			    MuonPathPtrs &outMPaths) {
 
+  cout << "Running clean hits filter" << endl;
   int counter = 0;
   for (const auto& mpath : inMPaths) {
     ++counter;
     auto mpAux = std::make_shared<MuonPath>(*mpath);  
     removeOutliers(mpAux);  // remove hits that are more than 1 bX from the meantime. 
-
+    
     outMPaths.emplace_back(mpAux); 
   } 
 }
 
 void MPCleanHitsFilter::removeOutliers(MuonPathPtr &mpath){
-
+  
   int MeanTime = getMeanTime(mpath);
   for (int i=0; i<mpath->nprimitives(); i++){
     if (!mpath->primitive(i)->isValidTime()) continue;
@@ -39,7 +40,6 @@ void MPCleanHitsFilter::removeOutliers(MuonPathPtr &mpath){
       mpath->primitive(i)->setChannelId(-1);    //invalidate hit 
     }
   }
-
 }
 
 double MPCleanHitsFilter::getMeanTime(MuonPathPtr &mpath){
