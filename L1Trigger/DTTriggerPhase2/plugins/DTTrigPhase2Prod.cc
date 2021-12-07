@@ -29,7 +29,7 @@
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyzer.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyticAnalyzer.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyzerInChamber.h"
-#include "L1Trigger/DTTriggerPhase2/interface/CoarseTimeLateralityAssigner.h"
+// #include "L1Trigger/DTTriggerPhase2/interface/CoarseTimeLateralityAssigner.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAssociator.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MPFilter.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MPQualityEnhancerFilter.h"
@@ -137,7 +137,7 @@ private:
   int algo_;  // Grouping code
   std::unique_ptr<MotherGrouping> grouping_obj_;
   std::unique_ptr<MuonPathAnalyzer> mpathanalyzer_;
-  std::unique_ptr<MuonPathAnalyzer> lateralityassigner_;
+  //   std::unique_ptr<MuonPathAnalyzer> lateralityassigner_;
   std::unique_ptr<MPFilter> mpathqualityenhancer_;
   std::unique_ptr<MPFilter> mpathqualityenhancerbayes_;
   std::unique_ptr<MPFilter> mpathredundantfilter_;
@@ -227,15 +227,15 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "DTp2:constructor: JM analyzer";
     mpathanalyzer_ = std::make_unique<MuonPathAnalyticAnalyzer>(pset, consumesColl, globalcoordsobtainer_);
-    cout << "Initializing laterality assigner for AM" << endl;
-    lateralityassigner_ = std::make_unique<CoarseTimeLateralityAssigner>(pset, consumesColl, globalcoordsobtainer_);
+    // cout << "Initializing laterality assigner for AM" << endl;
+    // lateralityassigner_ = std::make_unique<CoarseTimeLateralityAssigner>(pset, consumesColl, globalcoordsobtainer_);
   } else {
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "DTp2:constructor: Full chamber analyzer";
     mpathanalyzer_ = std::make_unique<MuonPathAnalyzerInChamber>(pset, consumesColl, globalcoordsobtainer_);
-    cout << "Initializing laterality assigner" << endl;
-    lateralityassigner_ = std::make_unique<CoarseTimeLateralityAssigner>(pset, consumesColl, globalcoordsobtainer_);
-    cout << "Done with initialization" << endl;
+    // cout << "Initializing laterality assigner" << endl;
+    // lateralityassigner_ = std::make_unique<CoarseTimeLateralityAssigner>(pset, consumesColl, globalcoordsobtainer_);
+    // cout << "Done with initialization" << endl;
   }
   
   // Getting buffer option
@@ -266,7 +266,7 @@ void DTTrigPhase2Prod::beginRun(edm::Run const& iRun, const edm::EventSetup& iEv
 
   grouping_obj_->initialise(iEventSetup);          // Grouping object initialisation
   mpathanalyzer_->initialise(iEventSetup);         // Analyzer object initialisation
-  lateralityassigner_->initialise(iEventSetup);    // Laterality assigner initialization
+  // xlateralityassigner_->initialise(iEventSetup);    // Laterality assigner initialization
   mpathqualityenhancer_->initialise(iEventSetup);  // Filter object initialisation
   mpathqualityenhancerbayes_->initialise(iEventSetup);  // Filter object initialisation
   mpathredundantfilter_->initialise(iEventSetup);  // Filter object initialisation
@@ -399,10 +399,10 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     mpathhitsfilter_->run(iEvent, iEventSetup, muonpaths, filteredmuonpaths);
     // MuonPathPtrs latmuonpaths;
     // mpathhitsfilter_->run(iEvent, iEventSetup, muonpaths, latmuonpaths);
-    cout << "Assigning lateralities" << endl;
+    // cout << "Assigning lateralities" << endl;
     // lateralityassigner_->run(iEvent, iEventSetup, latmuonpaths, filteredmuonpaths);
     // lateralityassigner_->run(iEvent, iEventSetup, muonpaths, filteredmuonpaths);
-    cout << "Done with lateralities" << endl;
+    // cout << "Done with lateralities" << endl;
 
     // Move filteredmuonpaths to metaprimitive format, in order to store it
     for (const auto& muonpath : filteredmuonpaths) {
@@ -1219,7 +1219,7 @@ void DTTrigPhase2Prod::endRun(edm::Run const& iRun, const edm::EventSetup& iEven
   mpathredundantfilter_->finish();
   mpathhitsfilter_->finish();
   mpathassociator_->finish();
-  lateralityassigner_->finish();
+  //  lateralityassigner_->finish();
   rpc_integrator_->finish();
 };
 
