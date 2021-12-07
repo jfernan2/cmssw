@@ -38,7 +38,7 @@ public:
   // Other public methods
   void setBxTolerance(int t) { bxTolerance_ = t; };
   void setMinHits4Fit(int h) { minHits4Fit_ = h; };
-  void setChiSquareThreshold(float ch2Thr) { chiSquareThreshold_ = ch2Thr; };
+  void setChiSquareThreshold(float ch2BayesThr) { chiSquareThreshold_ = ch2BayesThr; };
   void setMinimumQuality(cmsdt::MP_QUALITY q) {
     if (minQuality_ >= cmsdt::LOWQ)
       minQuality_ = q;
@@ -68,12 +68,13 @@ private:
   void calculateFitParameters(MuonPathPtr &mpath, TLateralities lat, int present_layer[NLayers], int &lat_added);
 
   void evaluateQuality(MuonPathPtr &mPath);
+  bool isSubPath(MuonPathPtr newPath, MuonPathPtr originalPath, int present_layer[NLayers]);
   int totalNumValLateralities_;
   std::vector<TLateralities> lateralities_;
   std::vector<cmsdt::LATQ_TYPE> latQuality_;
 
   bool debug_;
-  double chi2Th_;
+  double chi2BayesTh_;
   edm::FileInPath shift_filename_;
   int bxTolerance_;
   cmsdt::MP_QUALITY minQuality_;

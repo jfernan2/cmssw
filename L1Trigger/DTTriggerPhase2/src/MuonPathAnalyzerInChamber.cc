@@ -11,7 +11,7 @@ using namespace cmsdt;
 MuonPathAnalyzerInChamber::MuonPathAnalyzerInChamber(const ParameterSet &pset, edm::ConsumesCollector &iC, std::shared_ptr<GlobalCoordsObtainer> & globalcoordsobtainer)
     : MuonPathAnalyzer(pset, iC),
       debug_(pset.getUntrackedParameter<bool>("debug")),
-      chi2Th_(pset.getUntrackedParameter<double>("chi2Th")),
+      chi2BayesTh_(pset.getUntrackedParameter<double>("chi2BayesTh")),
       shift_filename_(pset.getParameter<edm::FileInPath>("shift_filename")),
       bxTolerance_(30),
       minQuality_(LOWQ),
@@ -26,8 +26,10 @@ MuonPathAnalyzerInChamber::MuonPathAnalyzerInChamber(const ParameterSet &pset, e
   cout << "splitPathPerSL: " << splitPathPerSL_ << endl;
 
   // setChiSquareThreshold(chi2Th_ * 100.);
-  setChiSquareThreshold(chi2Th_ * 10000.);
+  setChiSquareThreshold(chi2BayesTh_); //  * 10000.);
   
+  cout << "Chi2 thresold set to " << chi2BayesTh_ << " cm2"<< endl;
+
   //shift
   int rawId;
   std::ifstream ifin3(shift_filename_.fullPath());
@@ -199,28 +201,35 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
     int NTotalHits = NUM_LAYERS_2SL;
     float xwire[NUM_LAYERS_2SL];
     int present_layer[NUM_LAYERS_2SL];
+    int final_layer_cfg[NUM_LAYERS_2SL];
     for (int ii = 0; ii < 8; ii++) {
       xwire[ii] = mPath->xWirePos(ii);
       if (xwire[ii] == 0) {
         present_layer[ii] = 0;
+        final_layer_cfg[ii] = 0;
         NTotalHits--;
       } else {
         present_layer[ii] = 1;
+        final_layer_cfg[ii] = 1;
       }
     }
 
     while (NTotalHits >= minHits4Fit_) {
       mPath->setChiSquare(0);
       calculateFitParameters(mPath, lateralities_[i], present_layer, added_lat);
-      if (mPath->chiSquare() != 0)
+      cout << "Reconstructed Chi2 is " << mPath->chiSquare() << "cm2, to be compared with the threshold of " << chiSquareThreshold_ << "cm2" << endl;
+      if (mPath->chiSquare() < chiSquareThreshold_)
+	//if (mPath->chiSquare() > best_chi2)
         break;
       NTotalHits--;
+      for (int pl = 0; pl < 8; ++pl)
+        final_layer_cfg[pl] = present_layer[pl];
     }
 
     // if (NTotalHits > 4 && (NTotalHits - 3)*mPath->chiSquare() > chiSquareThreshold_)
     //   continue;
-    if (mPath->chiSquare() > chiSquareThreshold_)
-      continue;
+    // if (mPath->chiSquare() > chiSquareThreshold_)
+    //   continue;
 
     evaluateQuality(mPath);
 
@@ -344,6 +353,11 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
     cout << "Chi2/ndof = " << mPath->chiSquare() << ", while best_chi2 = " << best_chi2 << endl;
     if (mPath->chiSquare() < best_chi2 && mPath->chiSquare() > 0) {
       cout << "Looking at Chi2/ndof, I'll keep this path" << endl;
+      if (isSubPath(mPath, mpAux, final_layer_cfg) == true){
+	cout << "But it is a sub-path of the current candidate: I won't keep it!" << endl;
+	continue;
+      }
+
       // mpAux = std::make_shared<MuonPath>(mPath);
       // for (int ii = 0; ii < 8; ii++) {
       // 	if (present_layer[ii] == 0){
@@ -353,7 +367,8 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
       // 	}
       mpAux = std::make_shared<MuonPath>();
       for (int ii = 0; ii < 8; ii++) {
-	if (present_layer[ii] == 1){
+	// if (present_layer[ii] == 1){
+	if (final_layer_cfg[ii] == 1){
  	  DTPrimitivePtr prim = mPath->primitive(ii);
 	  mpAux->setPrimitive(prim, ii);
 	}
@@ -718,31 +733,43 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
 	 << ", rec x = " << rectdriftvdrift[lay] // in mm?
 	 << ", xwire = " << xwire[lay]
     	 << ", rect0vdrift = " << rect0vdrift 
+    	 << ", rec_res = " << recres[lay]
     	 // << ", zwire = " << zwire[lay]
     	 // << ", recslope = " << recslope 
     	 // << ", recpos = " << recpos 
     	 << endl;
 
-    // // If a hit is too close to the wire, set its corresponding "swap" flag to 1
-    // if (abs(rectdriftvdrift[lay]) < 3){
-    //   cout << "Reconstructed hit position at less than 3 mm wrt wire!" << endl;
-    //   swap_laterality[lay] = 1;
-    // }
+    // If a hit is too close to the wire, set its corresponding "swap" flag to 1
+    if (abs(rectdriftvdrift[lay]) < 3){
+      cout << "Reconstructed hit position at less than 3 mm wrt wire!" << endl;
+      swap_laterality[lay] = 1;
+    }
 
-    if ((present_layer[lay] == 1) && (rectdriftvdrift[lay] < -0.1)) {
-      sign_tdriftvdrift = -1;
-      if (-0.1 - rectdriftvdrift[lay] > maxDif) {
-        maxDif = -0.1 - rectdriftvdrift[lay];
-        maxInt = lay;
+    // // if (remove_hits_outside_cell) do this:
+    // if ((present_layer[lay] == 1) && (rectdriftvdrift[lay] < -0.1)) {
+    //   sign_tdriftvdrift = -1;
+    //   if (abs(-0.1 - rectdriftvdrift[lay]) > maxDif) {
+    //     maxDif = abs(-0.1 - rectdriftvdrift[lay]);
+    //     maxInt = lay;
+    //   }
+    // }
+    // if ((present_layer[lay] == 1) && (abs(rectdriftvdrift[lay]) > 21.1)) {
+    //   incell_tdriftvdrift = -1;  //Changed to 2.11 to account for resolution effects
+    //   if (abs(rectdriftvdrift[lay] - 21.1) > maxDif) {
+    //     maxDif = rectdriftvdrift[lay] - 21.1;
+    //     maxInt = lay;
+    //   }
+    // }
+    
+    // if (remove_larger_residual) do this:
+    // Remove the hit with larger residual
+    if (present_layer[lay] == 1){
+      if (abs(recres[lay]) > maxDif) {
+	maxDif = abs(recres[lay]);
+	maxInt = lay;
       }
     }
-    if ((present_layer[lay] == 1) && (abs(rectdriftvdrift[lay]) > 21.1)) {
-      incell_tdriftvdrift = -1;  //Changed to 2.11 to account for resolution effects
-      if (rectdriftvdrift[lay] - 21.1 > maxDif) {
-        maxDif = rectdriftvdrift[lay] - 21.1;
-        maxInt = lay;
-      }
-    }
+
   }
 
   // Now consider all possible alternative lateralities and push to lateralities_ those 
@@ -804,11 +831,14 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
     recchi2 = recchi2 / (n_hits - 3);
   if (debug_)
     LogDebug("MuonPathAnalyzerInChamber")
-        << "In fitPerLat Chi2 " << recchi2 << " with sign " << sign_tdriftvdrift << " within cell "
-        << incell_tdriftvdrift << " physical_slope " << physical_slope;
-
+      << "In fitPerLat Chi2 " << recchi2 << " with sign " << sign_tdriftvdrift << " within cell "
+      << incell_tdriftvdrift << " physical_slope " << physical_slope;
+  
   //LATERALITY IS NOT VALID
-  if (true && maxInt != -1) {
+
+  // CMSSW coordinated are in micrometers
+  // Our Chi2 threshold is in cm2 --> 10^8 conversion factor
+  if (true && maxInt != -1 && recchi2 > 100000000*chiSquareThreshold_) {
     present_layer[maxInt] = 0;
     // mpath->primitive(maxInt)->setTDCTimeStamp(-1);
     // mpath->primitive(maxInt)->setChannelId(-1);
@@ -907,4 +937,82 @@ void MuonPathAnalyzerInChamber::evaluateQuality(MuonPathPtr &mPath) {
   }
 
   cout << "Quality = " << mPath->quality() << endl;
+}
+
+
+bool MuonPathAnalyzerInChamber::isSubPath(MuonPathPtr newPath, MuonPathPtr originalPath, int present_layer[8]) {
+
+  cout << "Entering 'is subPath'" << endl;
+  
+  // if we have no original path, don't even do the comparison
+  if (originalPath == nullptr)
+    return false;
+
+  bool is_sub_path = false;
+  int  n_hits_newPath = 0;
+  int  n_hits_originalPath = 0;
+  int  n_shared_hits = 0;
+
+  // compare the wire number, timestamp, and laterality of each DTPrimitive in the two muon paths
+  for (int i = 0; i < 8; ++i){
+
+    // Count valid hits in the two paths
+    if (originalPath->primitive(i)->isValidTime()){
+      cout << "originalPath primitive is valid" << endl;
+      ++n_hits_originalPath;
+    }
+    if (present_layer[i] == 0) continue;
+    if (newPath->primitive(i)->isValidTime()){
+      cout << "newPath primitive is valid" << endl;
+      ++n_hits_newPath;
+      if (originalPath->primitive(i)->isValidTime()){
+	// cout << "oritinalPath primitive is valid" << endl;
+	// ++n_hits_originalPath;
+	// if at least one of the newPath valid hits is not the same as the corresponding one in originalPath, it is not a subPath
+	
+	cout << "Channels ID: " << newPath->primitive(i)->channelId() << ", " << newPath->primitive(i)->channelId() << endl;
+	cout << "Timestamps: " << newPath->primitive(i)->tdcTimeStamp() << ", " << newPath->primitive(i)->tdcTimeStamp() << endl;
+	cout << "Lateralities: " << newPath->primitive(i)->laterality() << ", " << newPath->primitive(i)->laterality() << endl;
+
+	if ( (   newPath->primitive(i)->channelId()    != newPath->primitive(i)->channelId())
+	     || (newPath->primitive(i)->tdcTimeStamp() != newPath->primitive(i)->tdcTimeStamp())
+	     || (newPath->primitive(i)->laterality()   != newPath->primitive(i)->laterality()) ){
+	  break;
+	  return false;
+	}
+	++n_shared_hits;
+      }
+      // If newPath has at least one valid hit that is not valid in originalPath, it is not a subPath
+      else {
+	cout << "but originalPath primitive is NOT valid!" << endl;
+	break;
+	return false;
+      }
+    }
+
+    // // if (newPath->primitive(i)->isValidTime() && !originalPath->primitive(i)->isValidTime()){
+    // //   break;
+    // //   return false;
+    // // }
+
+    // // If both paths have valid hits, compare them:
+    // // if at least one of the newPath valid hits is not the same as the corresponding one in originalPath, it is not a subPath
+    // if (newPath->primitive(i)->isValidTime() && originalPath->primitive(i)->isValidTime()){
+
+    //   if ( (newPath->primitive(i)->channelId()    != newPath->primitive(i)->channelId())
+    // 	   || (newPath->primitive(i)->tdcTimeStamp() != newPath->primitive(i)->tdcTimeStamp())
+    // 	   || (newPath->primitive(i)->laterality()   != newPath->primitive(i)->laterality()) ){
+    // 	break;
+    // 	return false;
+    //   }
+    //   ++n_shared_hits;
+    // }
+  }
+  // If newPaths has less hits than originalPath and all its hits are shared with originalPath, it is a subPath
+  if ( (n_hits_newPath < n_hits_originalPath) && (n_shared_hits == n_hits_newPath)){
+    is_sub_path = true;
+    cout << "newPath is a subPath of the originalPath" << endl;
+  }
+  return is_sub_path;
+
 }

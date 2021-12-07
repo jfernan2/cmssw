@@ -16,6 +16,7 @@ dtTriggerPhase2PrimitiveDigis = cms.EDProducer("DTTrigPhase2Prod",
                                                tanPhiThw0 = cms.untracked.double(0.5), 
                                                chi2Th = cms.untracked.double(0.01), #in cm^2
                                                chi2corTh = cms.untracked.double(0.1), #in cm^2
+                                               chi2BayesTh = cms.untracked.double(0.15), #in cm^2
                                                do_correlation = cms.bool(True),
                                                useBX_correlation = cms.untracked.bool(False),
                                                dT0_correlate_TP = cms.untracked.double(25.), 
