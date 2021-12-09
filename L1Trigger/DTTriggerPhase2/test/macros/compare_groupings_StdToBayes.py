@@ -18,9 +18,27 @@ additional_bayes_label = ""
 
 if len(sys.argv) < 2 :
     print("Using final Bayes output")
-else:
-    additional_bayes_label = sys.argv[1]
-    print("Bayes Label: {}".format(additional_bayes_label))
+else: 
+    if (sys.argv[1] == "fitting" or sys.argv[1] == "grouping"):
+        additional_bayes_label = sys.argv[1]
+        print("Bayes Label: {}".format(additional_bayes_label))
+    else:
+        print("Using final Bayes output")
+
+
+if len(sys.argv) < 4:
+    print("Using default bX and t0 time tolerance (none)")
+else: 
+    bxDiff=int(sys.argv[2])
+    t0Diff=float(sys.argv[3])
+    print("Using bXTol<%3d and t0<%3.1f tolerance" %(bxDiff,t0Diff)) 
+
+
+# if len(sys.argv) < 3 :
+#     print("Using final Bayes output")
+# else:
+#     additional_bayes_label = sys.argv[1]
+#     print("Bayes Label: {}".format(additional_bayes_label))
 
 
 ##
@@ -37,7 +55,31 @@ def getPFNs(lfns):
     return files
 
 
-def IsMatched(muon1,muon2,sharedFrac=0.5):
+# def IsMatched(muon1,muon2,sharedFrac=0.5):
+#     # first check if muon share Wh/Se/St 
+#     if (muon1.whNum()!=muon2.whNum()): return False 
+#     if (muon1.scNum()!=muon2.scNum()): return False 
+#     if (muon1.stNum()!=muon2.stNum()): return False     
+    
+#     # now count the number of shared hits: 
+#     numShared=0.
+#     totMuon1=0.
+#     for ly in range(0,7):
+#         if (muon1.pathWireId(ly)>=0): 
+#             totMuon1=totMuon1+1. 
+#         else:                         
+#             continue
+
+#         if (muon1.pathWireId(ly)!=muon2.pathWireId(ly)): continue
+#         if (muon1.pathTDC(ly)!=muon2.pathTDC(ly)): continue
+        
+#         numShared = numShared+1.
+
+#     if (numShared/totMuon1 >= sharedFrac): return True
+
+#     return False
+
+def IsMatched(muon1,muon2,sharedFrac=0.5,bxTol=999,timeTol=999):
     # first check if muon share Wh/Se/St 
     if (muon1.whNum()!=muon2.whNum()): return False 
     if (muon1.scNum()!=muon2.scNum()): return False 
@@ -46,6 +88,7 @@ def IsMatched(muon1,muon2,sharedFrac=0.5):
     # now count the number of shared hits: 
     numShared=0.
     totMuon1=0.
+    matching=False
     for ly in range(0,7):
         if (muon1.pathWireId(ly)>=0): 
             totMuon1=totMuon1+1. 
@@ -56,10 +99,26 @@ def IsMatched(muon1,muon2,sharedFrac=0.5):
         if (muon1.pathTDC(ly)!=muon2.pathTDC(ly)): continue
         
         numShared = numShared+1.
+    
+    if (numShared/totMuon1 >= sharedFrac): 
+        matching = True
+    
+    
+    ## Now matching for bX: 
+    if (bxTol<999):
+        if (abs(muon1.bxNum()-muon2.bxNum())<bxTol): 
+            matching = matching and True
+        else :
+            matching = False
 
-    if (numShared/totMuon1 >= sharedFrac): return True
-
-    return False
+    if (timeTol<999):
+        if (abs(muon1.t0()-muon2.t0())<timeTol):
+            matching = matching and True
+        else:
+            matching = False
+    
+    ## Now matching for t0:
+    return matching
 
 
 def shared_hits(muon1, muon2):
@@ -333,8 +392,8 @@ for frac in [0.25,0.5,0.75,1.00]:
             best_matched = 0
             n_shared_hits = 0
             for muon2 in muon_bayes: 
-                matched = matched or IsMatched(muon,muon2,frac)
-                if IsMatched(muon,muon2,frac) == True:
+                matched = matched or IsMatched(muon,muon2,frac,bxDiff,t0Diff)
+                if IsMatched(muon,muon2,frac,bxDiff,t0Diff) == True:
                     if shared_hits(muon, muon2) > n_shared_hits:
                         best_matched = muon2
                         # hMatchingEff2D[st].Fill(muon.quality(), muon_matched.quality())
@@ -347,7 +406,7 @@ for frac in [0.25,0.5,0.75,1.00]:
                 #          and muon2.quality() > muon_matched.quality() ):
                 #         muon_matched = muon2
 
-                if not IsMatched(muon,muon2,frac): continue
+                if not IsMatched(muon,muon2,frac,bxDiff,t0Diff): continue
 
                 if (muon.quality()>=1) :  
                     # Inclusive in MB
