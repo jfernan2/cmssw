@@ -186,6 +186,8 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
   buildLateralities(mPath);
   setWirePosAndTimeInMP(mPath);
 
+
+  std::vector<std::shared_ptr<MuonPath>> mpAuxVec;
   std::shared_ptr<MuonPath> mpAux;
   int bestI = -1;
   float best_chi2 = 99999.;
@@ -393,26 +395,33 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
       mpAux->setPhiBCMSSW(hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? psi - phi_cmssw : -psi - phi_cmssw);
       bestI = i;
       best_chi2 = mPath->chiSquare();
+      std::shared_ptr<MuonPath> mpAuxForVec = std::make_shared<MuonPath>(*mpAux);
+      mpAuxVec.push_back(mpAuxForVec);
     }
   }
-  if (mpAux != nullptr && mpAux->quality() >= minQuality_) {
-    cout << "This is my candidate: ";
-    for (int qq = 0; qq < 8; ++qq){
-      cout << mPath->primitive(qq)->channelId() << " (" << mPath->primitive(qq)->tdcTimeStamp() << "), ";
-    }
-    cout << "" << endl;
-    outMPath.push_back(std::move(mpAux));
-    if (debug_)
-      LogDebug("MuonPathAnalyzerInChamber")
-          << "DTp2:analize \t\t\t\t\t Laterality " << bestI << " is the one with smaller chi2";
-  } else {
-    if (debug_)
-      LogDebug("MuonPathAnalyzerInChamber")
-          << "DTp2:analize \t\t\t\t\t No Laterality found with chi2 smaller than threshold";
-  }
-  if (debug_)
-    LogDebug("MuonPathAnalyzerInChamber") << "DTp2:analize \t\t\t\t\t Ended working with this set of lateralities";
+  for (auto pat_it = mpAuxVec.begin(); pat_it < mpAuxVec.end(); pat_it++){
+	auto mpi = *pat_it;
+	cout << "[DEBUG]: pattern has " << mpi->chiSquare() << endl; 
+        if (mpi != nullptr && mpi->quality() >= minQuality_) {
+            cout << "This is my candidate: ";
+            for (int qq = 0; qq < 8; ++qq){
+              cout << mPath->primitive(qq)->channelId() << " (" << mPath->primitive(qq)->tdcTimeStamp() << "), ";
+            }
+            cout << "" << endl;
+            outMPath.push_back(std::move(mpi));
+            if (debug_)
+              LogDebug("MuonPathAnalyzerInChamber")
+                  << "DTp2:analize \t\t\t\t\t Laterality " << bestI << " is the one with smaller chi2";
+          } else {
+            if (debug_)
+              LogDebug("MuonPathAnalyzerInChamber")
+                  << "DTp2:analize \t\t\t\t\t No Laterality found with chi2 smaller than threshold";
+          }
+          if (debug_)
+            LogDebug("MuonPathAnalyzerInChamber") << "DTp2:analize \t\t\t\t\t Ended working with this set of lateralities";
+        
 }
+  }
 
 void MuonPathAnalyzerInChamber::setCellLayout(MuonPathPtr &mpath) {
   for (int i = 0; i <= mpath->nprimitives(); i++) {
