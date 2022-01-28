@@ -675,11 +675,11 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     if (!(algo_ == Standard)){
         int nMuonPath_counter = 0;
         for (auto muonpath = filteredmuonpaths.begin(); muonpath != filteredmuonpaths.end(); ++muonpath) {
-         //if (debug_) {
-           //LogDebug("DTTrigPhase2Prod")
-           cout<< "Full path: " << nMuonPath_counter << " , " << muonpath->get()->nprimitives() << " , "
-           << muonpath->get()->nprimitivesUp() << " , " << muonpath->get()->nprimitivesDown()<<endl;
-          //}
+         if (debug_) {
+           LogDebug("DTTrigPhase2Prod")
+           << "Full path: " << nMuonPath_counter << " , " << muonpath->get()->nprimitives() << " , "
+           << muonpath->get()->nprimitivesUp() << " , " << muonpath->get()->nprimitivesDown();
+          }
         ++nMuonPath_counter;
 
         // Define muonpaths for up/down SL only
