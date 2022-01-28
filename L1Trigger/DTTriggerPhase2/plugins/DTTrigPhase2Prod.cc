@@ -137,6 +137,7 @@ private:
   int algo_;  // Grouping code
   std::unique_ptr<MotherGrouping> grouping_obj_;
   std::unique_ptr<MuonPathAnalyzer> mpathanalyzer_;
+  std::unique_ptr<MuonPathAnalyticAnalyzer> mpathanalyticanalyzer_;
   //   std::unique_ptr<MuonPathAnalyzer> lateralityassigner_;
   std::unique_ptr<MPFilter> mpathqualityenhancer_;
   std::unique_ptr<MPFilter> mpathqualityenhancerbayes_;
@@ -227,12 +228,14 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "DTp2:constructor: JM analyzer";
     mpathanalyzer_ = std::make_unique<MuonPathAnalyticAnalyzer>(pset, consumesColl, globalcoordsobtainer_);
+    mpathanalyticanalyzer_ = std::make_unique<MuonPathAnalyticAnalyzer>(pset, consumesColl, globalcoordsobtainer_);
     // cout << "Initializing laterality assigner for AM" << endl;
     // lateralityassigner_ = std::make_unique<CoarseTimeLateralityAssigner>(pset, consumesColl, globalcoordsobtainer_);
   } else {
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "DTp2:constructor: Full chamber analyzer";
     mpathanalyzer_ = std::make_unique<MuonPathAnalyzerInChamber>(pset, consumesColl, globalcoordsobtainer_);
+    mpathanalyticanalyzer_ = std::make_unique<MuonPathAnalyticAnalyzer>(pset, consumesColl, globalcoordsobtainer_);
     // cout << "Initializing laterality assigner" << endl;
     // lateralityassigner_ = std::make_unique<CoarseTimeLateralityAssigner>(pset, consumesColl, globalcoordsobtainer_);
     // cout << "Done with initialization" << endl;
@@ -266,6 +269,7 @@ void DTTrigPhase2Prod::beginRun(edm::Run const& iRun, const edm::EventSetup& iEv
 
   grouping_obj_->initialise(iEventSetup);          // Grouping object initialisation
   mpathanalyzer_->initialise(iEventSetup);         // Analyzer object initialisation
+  mpathanalyticanalyzer_->initialise(iEventSetup);  // Analytic analyzer object initialisation
   // xlateralityassigner_->initialise(iEventSetup);    // Laterality assigner initialization
   mpathqualityenhancer_->initialise(iEventSetup);  // Filter object initialisation
   mpathqualityenhancerbayes_->initialise(iEventSetup);  // Filter object initialisation
@@ -666,6 +670,35 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     }
   }
 
+  //Splitting for  2SL case
+   MuonPathPtrs muonpathsUp, muonpathsDown;
+    if (!(algo_ == Standard)){
+        int nMuonPath_counter = 0;
+        for (auto muonpath = filteredmuonpaths.begin(); muonpath != filteredmuonpaths.end(); ++muonpath) {
+         //if (debug_) {
+           //LogDebug("DTTrigPhase2Prod")
+           cout<< "Full path: " << nMuonPath_counter << " , " << muonpath->get()->nprimitives() << " , "
+           << muonpath->get()->nprimitivesUp() << " , " << muonpath->get()->nprimitivesDown()<<endl;
+          //}
+        ++nMuonPath_counter;
+
+        // Define muonpaths for up/down SL only
+        MuonPathPtr muonpathUp_ptr = std::make_shared<MuonPath>();
+        muonpathUp_ptr->setNPrimitives(8);
+        muonpathUp_ptr->setNPrimitivesUp(muonpath->get()->nprimitivesUp());
+        muonpathUp_ptr->setNPrimitivesDown(0);
+
+        MuonPathPtr muonpathDown_ptr = std::make_shared<MuonPath>();
+        muonpathDown_ptr->setNPrimitives(8);
+        muonpathDown_ptr->setNPrimitivesUp(0);
+        muonpathDown_ptr->setNPrimitivesDown(muonpath->get()->nprimitivesDown());
+
+        muonpathsUp.push_back(muonpathUp_ptr);
+        muonpathsDown.push_back(muonpathDown_ptr);
+      }
+    }
+
+
   ///////////////////////////////////////////
   /// FITTING SECTION;
   ///////////////////////////////////////////
@@ -677,7 +710,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     LogDebug("DTTrigPhase2Prod") << "filling NmetaPrimtives" << std::endl;
   std::vector<metaPrimitive> metaPrimitives;
   std::vector<metaPrimitive> fittingMetaPrimitives;
-  MuonPathPtrs outmpaths;
+  MuonPathPtrs outmpaths, outmpathsUp, outmpathsDown;
   if (algo_ == Standard) {
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "Fitting 1SL ";
@@ -688,7 +721,9 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       LogDebug("DTTrigPhase2Prod") << "Fitting 2SL at once ";
     //mpathanalyzer_->run(iEvent, iEventSetup, muonpaths, outmpaths);
     mpathanalyzer_->run(iEvent, iEventSetup, filteredmuonpaths, outmpaths);
-    
+    mpathanalyticanalyzer_->run(iEvent, iEventSetup, muonpathsUp, outmpathsUp);
+    mpathanalyticanalyzer_->run(iEvent, iEventSetup, muonpathsDown, outmpathsDown);
+
     cout << "Fitting step finished. Filling metaprimitives..." << endl;
 
     // Move filteredmuonpaths to metaprimitive format, in order to store it
@@ -1214,6 +1249,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 void DTTrigPhase2Prod::endRun(edm::Run const& iRun, const edm::EventSetup& iEventSetup) {
   grouping_obj_->finish();
   mpathanalyzer_->finish();
+  mpathanalyticanalyzer_->finish();
   mpathqualityenhancer_->finish();
   mpathqualityenhancerbayes_->finish();
   mpathredundantfilter_->finish();
