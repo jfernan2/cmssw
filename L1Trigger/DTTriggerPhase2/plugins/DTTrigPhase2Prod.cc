@@ -651,7 +651,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
        int nMuonPath_counter = 0;
        for (auto muonpath = filteredmuonpaths.begin(); muonpath != filteredmuonpaths.end(); ++muonpath) {
         if (debug_) {
-          LogDebug("MuonPathAnalyzerInChamber")
+          LogDebug("DTTrigPhase2Prod")
           << "Full path: " << nMuonPath_counter << " , " << muonpath->get()->nprimitives() << " , "
           << muonpath->get()->nprimitivesUp() << " , " << muonpath->get()->nprimitivesDown();
          }
