@@ -12,7 +12,7 @@
 #include "Geometry/Records/interface/MuonGeometryRecord.h"
 
 #include "Geometry/DTGeometry/interface/DTGeometry.h"
-#include "Geometry/DTGeometry/interface/DTLayer.h"
+#include "DataFormats/MuonDetId/interface/DTLayerId.h"
 
 #include <iostream>
 #include <fstream>
@@ -36,6 +36,11 @@ public:
   virtual void run(edm::Event& iEvent,
                    const edm::EventSetup& iEventSetup,
                    std::vector<cmsdt::metaPrimitive>& inMPath,
+                   std::vector<cmsdt::metaPrimitive>& outMPath) = 0;
+  virtual void run(edm::Event& iEvent,
+                   const edm::EventSetup& iEventSetup,
+                   std::vector<cmsdt::metaPrimitive>& inSLMPath,
+                   std::vector<cmsdt::metaPrimitive>& inCorMPath,
                    std::vector<cmsdt::metaPrimitive>& outMPath) = 0;
   virtual void run(edm::Event& iEvent,
                    const edm::EventSetup& iEventSetup,
