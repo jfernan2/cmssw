@@ -193,16 +193,16 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
     if (mp.quality == LOWQ)
       new_quality = CLOWQ;
 
-    wi_c[next_layer] = next_wire;
-    tdc_c[next_layer] = next_tdc;
-    lat_c[next_layer] = next_lat;
+    wi_c[next_layer - 1] = next_wire;
+    tdc_c[next_layer - 1] = next_tdc;
+    lat_c[next_layer - 1] = next_lat;
 
-    wi_c[best_layer] =  best_wire;
-    tdc_c[best_layer] = best_tdc;
-    lat_c[best_layer] = best_lat;
+    wi_c[best_layer - 1] =  best_wire;
+    tdc_c[best_layer - 1] = best_tdc;
+    lat_c[best_layer - 1] = best_lat;
   }
   if (isSL1) {
-    outMetaPrimitives.emplace_back(metaPrimitive({ChId.rawId(),
+    outMetaPrimitives.emplace_back(metaPrimitive({mp.rawId,
       mp.t0,
       mp.x,
       mp.tanPhi,
@@ -238,7 +238,7 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
       lat_c[3],
       -1}));
   } else {
-    outMetaPrimitives.emplace_back(metaPrimitive({ChId.rawId(),
+    outMetaPrimitives.emplace_back(metaPrimitive({mp.rawId,
       mp.t0,
       mp.x,
       mp.tanPhi,

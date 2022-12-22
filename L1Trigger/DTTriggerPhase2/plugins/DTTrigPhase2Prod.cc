@@ -693,6 +693,33 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   muonpaths.clear();
   filteredmuonpaths.clear();
 
+
+  /////////////////////////////////////
+  //// CONFIRMATION:
+  /////////////////////////////////////
+
+  std::map<int, std::vector<metaPrimitive>> confirmedMetaPrimitives;
+  for (auto & ch_metaPrimitives: metaPrimitives) {
+    if (!skip_processing_ && allow_confirmation_)
+      mpathconfirmator_->run(iEvent, iEventSetup, ch_metaPrimitives.second, dtdigis, confirmedMetaPrimitives[ch_metaPrimitives.first]);
+    else
+      for (auto &mp: ch_metaPrimitives.second) {
+        confirmedMetaPrimitives[ch_metaPrimitives.first].push_back(mp);
+      }
+  }
+  
+  for (auto & ch_metaPrimitives: confirmedMetaPrimitives) {
+    for (unsigned int i = 0; i < ch_metaPrimitives.second.size(); i++) {
+      std::cout << " SL confmp " << i << ": ";
+      printmPC(ch_metaPrimitives.second.at(i));
+    }
+  }
+  
+  
+  metaPrimitives.clear();
+  skip_processing_ = skip_processing_ || output_confirmed_;
+
+
   /////////////////////////////////////
   //  FILTER SECTIONS:
   ////////////////////////////////////
@@ -702,12 +729,12 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   std::map<int, std::vector<metaPrimitive>> filteredMetaPrimitives;
   if (algo_ == Standard)
-    for (auto & ch_metaPrimitives: metaPrimitives) {
+    for (auto & ch_confirmedMetaPrimitives: confirmedMetaPrimitives) {
       if (!skip_processing_)
-        mpathqualityenhancer_->run(iEvent, iEventSetup, ch_metaPrimitives.second, filteredMetaPrimitives[ch_metaPrimitives.first]);
+        mpathqualityenhancer_->run(iEvent, iEventSetup, ch_confirmedMetaPrimitives.second, filteredMetaPrimitives[ch_confirmedMetaPrimitives.first]);
       else
-        for (auto &mp: ch_metaPrimitives.second) {
-          filteredMetaPrimitives[ch_metaPrimitives.first].push_back(mp);
+        for (auto &mp: ch_confirmedMetaPrimitives.second) {
+          filteredMetaPrimitives[ch_confirmedMetaPrimitives.first].push_back(mp);
         }
     }
   if (dump_) {
@@ -719,15 +746,15 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
     }
   }
-  // for (auto & ch_metaPrimitives: filteredMetaPrimitives) {
-    // for (unsigned int i = 0; i < ch_metaPrimitives.second.size(); i++) {
-      // std::cout << " SL filtmp " << i << ": ";
-      // printmPC(ch_metaPrimitives.second.at(i));
-    // }
-  // }
+  for (auto & ch_metaPrimitives: filteredMetaPrimitives) {
+    for (unsigned int i = 0; i < ch_metaPrimitives.second.size(); i++) {
+      std::cout << " SL filtmp " << i << ": ";
+      printmPC(ch_metaPrimitives.second.at(i));
+    }
+  }
 
   skip_processing_ = skip_processing_ || output_slfilter_;
-  metaPrimitives.clear();
+  confirmedMetaPrimitives.clear();
   // metaPrimitives.erase(metaPrimitives.begin(), metaPrimitives.end());
 
   if (debug_)
@@ -739,21 +766,6 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   if (debug_)
     LogDebug("DTTrigPhase2Prod") << "filteredMetaPrimitives: starting correlations" << std::endl;
 
-  /////////////////////////////////////
-  //// CONFIRMATION:
-  /////////////////////////////////////
-
-  std::map<int, std::vector<metaPrimitive>> confirmedMetaPrimitives;
-  for (auto & ch_filteredMetaPrimitives: filteredMetaPrimitives) {
-    if (!skip_processing_ && allow_confirmation_)
-      mpathconfirmator_->run(iEvent, iEventSetup, ch_filteredMetaPrimitives.second, dtdigis, confirmedMetaPrimitives[ch_filteredMetaPrimitives.first]);
-    else
-      for (auto &mp: ch_filteredMetaPrimitives.second) {
-        confirmedMetaPrimitives[ch_filteredMetaPrimitives.first].push_back(mp);
-      }
-  }
-  filteredMetaPrimitives.clear();
-  skip_processing_ = skip_processing_ || output_confirmed_;
 
   /////////////////////////////////////
   //// CORRELATION:
@@ -761,13 +773,13 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   std::map<int, std::vector<metaPrimitive>> correlatedMetaPrimitives;
   if (algo_ == Standard) {
-    for (auto & ch_confirmedMetaPrimitives: confirmedMetaPrimitives) {
+    for (auto & ch_filteredMetaPrimitives: filteredMetaPrimitives) {
       // mpathassociator_->run(iEvent, iEventSetup, dtdigis, ch_filteredMetaPrimitives.second, correlatedMetaPrimitives[ch_filteredMetaPrimitives.first]);
       if (!skip_processing_)
-        mpathassociator_->run(iEvent, iEventSetup, ch_confirmedMetaPrimitives.second, correlatedMetaPrimitives[ch_confirmedMetaPrimitives.first]);
+        mpathassociator_->run(iEvent, iEventSetup, ch_filteredMetaPrimitives.second, correlatedMetaPrimitives[ch_filteredMetaPrimitives.first]);
       else
-        for (auto &mp: ch_confirmedMetaPrimitives.second) {
-          correlatedMetaPrimitives[ch_confirmedMetaPrimitives.first].push_back(mp);
+        for (auto &mp: ch_filteredMetaPrimitives.second) {
+          correlatedMetaPrimitives[ch_filteredMetaPrimitives.first].push_back(mp);
         }
       // for (auto & tp: ch_filteredMetaPrimitives.second) {
         // correlatedMetaPrimitives[ch_filteredMetaPrimitives.first].push_back(tp);
@@ -835,44 +847,44 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
     }
   }
-  // for (auto & ch_correlatedMetaPrimitives: correlatedMetaPrimitives) {
-    // for (unsigned int i = 0; i < ch_correlatedMetaPrimitives.second.size(); i++) {
-      // std::cout << " correlated mp " << i << ": ";
-      // printmPC(ch_correlatedMetaPrimitives.second.at(i));
-    // }
-  // }
+  for (auto & ch_correlatedMetaPrimitives: correlatedMetaPrimitives) {
+    for (unsigned int i = 0; i < ch_correlatedMetaPrimitives.second.size(); i++) {
+      std::cout << " correlated mp " << i << ": ";
+      printmPC(ch_correlatedMetaPrimitives.second.at(i));
+    }
+  }
 
   // Correlated Filtering
   std::map<int, std::vector<metaPrimitive>> filtCorrelatedMetaPrimitives;
   if (algo_ == Standard) {
-    for (auto & ch_confirmedMetaPrimitives: confirmedMetaPrimitives) {
+    for (auto & ch_filteredMetaPrimitives: filteredMetaPrimitives) {
       if (!skip_processing_)
         mpathcorfilter_->run(iEvent, iEventSetup,
-          ch_confirmedMetaPrimitives.second,
-          correlatedMetaPrimitives[ch_confirmedMetaPrimitives.first],
-          filtCorrelatedMetaPrimitives[ch_confirmedMetaPrimitives.first]
+          ch_filteredMetaPrimitives.second,
+          correlatedMetaPrimitives[ch_filteredMetaPrimitives.first],
+          filtCorrelatedMetaPrimitives[ch_filteredMetaPrimitives.first]
         );
       else {
-        for (auto &mp: ch_confirmedMetaPrimitives.second) {
-          filtCorrelatedMetaPrimitives[ch_confirmedMetaPrimitives.first].push_back(mp);
+        for (auto &mp: ch_filteredMetaPrimitives.second) {
+          filtCorrelatedMetaPrimitives[ch_filteredMetaPrimitives.first].push_back(mp);
         }
         if (output_matcher_)
-          for (auto &mp: correlatedMetaPrimitives[ch_confirmedMetaPrimitives.first]) {
-            filtCorrelatedMetaPrimitives[ch_confirmedMetaPrimitives.first].push_back(mp);
+          for (auto &mp: correlatedMetaPrimitives[ch_filteredMetaPrimitives.first]) {
+            filtCorrelatedMetaPrimitives[ch_filteredMetaPrimitives.first].push_back(mp);
           }
       }
     }
   }
   
-  // for (auto & ch_correlatedMetaPrimitives: filtCorrelatedMetaPrimitives) {
-      // for (unsigned int i = 0; i < ch_correlatedMetaPrimitives.second.size(); i++) {
-      // std::cout << "filtered correlated mp " << i << ": ";
-      // printmPC(ch_correlatedMetaPrimitives.second.at(i));
-    // }
-  // }
+  for (auto & ch_correlatedMetaPrimitives: filtCorrelatedMetaPrimitives) {
+      for (unsigned int i = 0; i < ch_correlatedMetaPrimitives.second.size(); i++) {
+      std::cout << "filtered correlated mp " << i << ": ";
+      printmPC(ch_correlatedMetaPrimitives.second.at(i));
+    }
+  }
   
   correlatedMetaPrimitives.clear();
-  confirmedMetaPrimitives.clear();
+  filteredMetaPrimitives.clear();
 
   double shift_back = 0;
   if (scenario_ == MC)  //scope for MC

@@ -97,13 +97,13 @@ std::vector<metaPrimitive> MPSLFilter::filter(std::vector<metaPrimitive> mps) {
 
 
 int MPSLFilter::match(cmsdt::metaPrimitive mp, cmsdt::metaPrimitive mp2) {
-  if (mp.quality == LOWQ && mp2.quality == LOWQ)
+  if ((mp.quality == mp2.quality) && (mp.quality == LOWQ || mp2.quality == CLOWQ))
     return 1;
-  if (mp.quality != LOWQ && mp2.quality == LOWQ) {
+  if (mp.quality > mp2.quality) {
     if (share_hit(mp, mp2)) return 2;
     return 3;
   }
-  if (mp.quality == LOWQ && mp2.quality != LOWQ) {
+  if (mp.quality < mp2.quality) {
     if (share_hit(mp, mp2)) return 4;
     return 5;
   }
@@ -199,14 +199,21 @@ int MPSLFilter::killTps(cmsdt::metaPrimitive mp, int bx, std::map<int, valid_tp_
   // If I'm a 4h, I replace the first 3h or the 4h with the biggest chi2.
   // Let's try to find both
   int biggest_chi2 = 0;
+  int clowq_index = -1;
   for (size_t i = 0; i < tps_per_bx[bx].size(); i++) {
     if (tps_per_bx[bx][i].mp.quality == LOWQ) return i;
+    if (tps_per_bx[bx][i].mp.quality == CLOWQ && clowq_index == -1) {
+      clowq_index = i;
+      continue;
+    }
     auto chi2 = get_chi2(tps_per_bx[bx][i].mp);
     if (chi2 > biggest_chi2) {
       index_to_kill = i;
       biggest_chi2 = chi2;
     }
   }
+  // If I found a confirmed 3h, I replace that one
+  if (clowq_index != -1) return clowq_index;
   // If all stored tps are 4h and their chi2 is smaller than mine, I don't replace any
   if (biggest_chi2 < get_chi2(mp)) return -1;
   // If at least one chi2 is bigger than mine, I replace the corresponding tp
@@ -221,6 +228,9 @@ int MPSLFilter::share_hit(cmsdt::metaPrimitive mp, cmsdt::metaPrimitive mp2) {
   // checking that they are from the same SL
   if (mp.rawId != mp2.rawId)
     return 0;
+
+  bool isSL1 = ((int) (mp2.wi1 != -1) + (int) (mp2.wi2 != -1) +
+    (int) (mp2.wi3 != -1) + (int) (mp2.wi4 != -1)) >= 3;
 
   int tdc_mp[NUM_LAYERS_2SL] = {mp.tdc1, mp.tdc2, mp.tdc3, mp.tdc4, mp.tdc5, mp.tdc6, mp.tdc7, mp.tdc8};
   int tdc_mp2[NUM_LAYERS_2SL] = {mp2.tdc1, mp2.tdc2, mp2.tdc3, mp2.tdc4, mp2.tdc5, mp2.tdc6, mp2.tdc7, mp2.tdc8};
@@ -239,17 +249,17 @@ int MPSLFilter::share_hit(cmsdt::metaPrimitive mp, cmsdt::metaPrimitive mp2) {
       || mp2.t0 / LHC_CLK_FREQ + SLFILT_MAX_SEG1T0_TO_SEG2ARRIVAL < max_tdc_mp / LHC_CLK_FREQ)
     return 0;
 
-  if ((mp.wi1 == mp2.wi1 and mp.tdc1 == mp2.tdc1 and mp.wi1 != -1 and mp.tdc1 != -1) ||
-      (mp.wi5 == mp2.wi5 and mp.tdc5 == mp2.tdc5 and mp.wi5 != -1 and mp.tdc5 != -1))
+  if ((isSL1 && (mp.wi1 == mp2.wi1 and mp.tdc1 == mp2.tdc1 and mp.wi1 != -1 and mp.tdc1 != -1)) ||
+      (!isSL1 &&(mp.wi5 == mp2.wi5 and mp.tdc5 == mp2.tdc5 and mp.wi5 != -1 and mp.tdc5 != -1)))
     return 1;
-  if ((mp.wi2 == mp2.wi2 and mp.tdc2 == mp2.tdc2 and mp.wi2 != -1 and mp.tdc2 != -1) ||
-      (mp.wi6 == mp2.wi6 and mp.tdc6 == mp2.tdc6 and mp.wi6 != -1 and mp.tdc6 != -1))
+  if ((isSL1 && (mp.wi2 == mp2.wi2 and mp.tdc2 == mp2.tdc2 and mp.wi2 != -1 and mp.tdc2 != -1)) ||
+      (!isSL1 &&(mp.wi6 == mp2.wi6 and mp.tdc5 == mp2.tdc6 and mp.wi6 != -1 and mp.tdc6 != -1)))
     return 2;
-  if ((mp.wi3 == mp2.wi3 and mp.tdc3 == mp2.tdc3 and mp.wi3 != -1 and mp.tdc3 != -1) ||
-      (mp.wi7 == mp2.wi7 and mp.tdc7 == mp2.tdc7 and mp.wi7 != -1 and mp.tdc7 != -1))
+  if ((isSL1 && (mp.wi3 == mp2.wi3 and mp.tdc3 == mp2.tdc3 and mp.wi3 != -1 and mp.tdc3 != -1)) ||
+      (!isSL1 &&(mp.wi7 == mp2.wi7 and mp.tdc7 == mp2.tdc7 and mp.wi7 != -1 and mp.tdc7 != -1)))
     return 3;
-  if ((mp.wi4 == mp2.wi4 and mp.tdc4 == mp2.tdc4 and mp.wi4 != -1 and mp.tdc4 != -1) ||
-      (mp.wi8 == mp2.wi8 and mp.tdc8 == mp2.tdc8 and mp.wi8 != -1 and mp.tdc8 != -1))
+ if ((isSL1 && (mp.wi4 == mp2.wi4 and mp.tdc4 == mp2.tdc4 and mp.wi4 != -1 and mp.tdc4 != -1)) ||
+      (!isSL1 &&(mp.wi8 == mp2.wi8 and mp.tdc8 == mp2.tdc8 and mp.wi8 != -1 and mp.tdc8 != -1)))
     return 4;
   return 0;
 }
