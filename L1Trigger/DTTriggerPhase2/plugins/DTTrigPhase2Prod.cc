@@ -708,17 +708,15 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
   }
   
-  for (auto & ch_metaPrimitives: confirmedMetaPrimitives) {
-    for (unsigned int i = 0; i < ch_metaPrimitives.second.size(); i++) {
-      std::cout << " SL confmp " << i << ": ";
-      printmPC(ch_metaPrimitives.second.at(i));
-    }
-  }
-  
-  
+  // for (auto & ch_metaPrimitives: confirmedMetaPrimitives) {
+    // for (unsigned int i = 0; i < ch_metaPrimitives.second.size(); i++) {
+      // std::cout << " SL confmp " << i << ": ";
+      // printmPC(ch_metaPrimitives.second.at(i));
+    // }
+  // }
+
   metaPrimitives.clear();
   skip_processing_ = skip_processing_ || output_confirmed_;
-
 
   /////////////////////////////////////
   //  FILTER SECTIONS:
@@ -746,12 +744,12 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
     }
   }
-  for (auto & ch_metaPrimitives: filteredMetaPrimitives) {
-    for (unsigned int i = 0; i < ch_metaPrimitives.second.size(); i++) {
-      std::cout << " SL filtmp " << i << ": ";
-      printmPC(ch_metaPrimitives.second.at(i));
-    }
-  }
+  // for (auto & ch_metaPrimitives: filteredMetaPrimitives) {
+    // for (unsigned int i = 0; i < ch_metaPrimitives.second.size(); i++) {
+      // std::cout << " SL filtmp " << i << ": ";
+      // printmPC(ch_metaPrimitives.second.at(i));
+    // }
+  // }
 
   skip_processing_ = skip_processing_ || output_slfilter_;
   confirmedMetaPrimitives.clear();
@@ -847,12 +845,12 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
     }
   }
-  for (auto & ch_correlatedMetaPrimitives: correlatedMetaPrimitives) {
-    for (unsigned int i = 0; i < ch_correlatedMetaPrimitives.second.size(); i++) {
-      std::cout << " correlated mp " << i << ": ";
-      printmPC(ch_correlatedMetaPrimitives.second.at(i));
-    }
-  }
+  // for (auto & ch_correlatedMetaPrimitives: correlatedMetaPrimitives) {
+    // for (unsigned int i = 0; i < ch_correlatedMetaPrimitives.second.size(); i++) {
+      // std::cout << " correlated mp " << i << ": ";
+      // printmPC(ch_correlatedMetaPrimitives.second.at(i));
+    // }
+  // }
 
   // Correlated Filtering
   std::map<int, std::vector<metaPrimitive>> filtCorrelatedMetaPrimitives;
@@ -876,12 +874,12 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     }
   }
   
-  for (auto & ch_correlatedMetaPrimitives: filtCorrelatedMetaPrimitives) {
-      for (unsigned int i = 0; i < ch_correlatedMetaPrimitives.second.size(); i++) {
-      std::cout << "filtered correlated mp " << i << ": ";
-      printmPC(ch_correlatedMetaPrimitives.second.at(i));
-    }
-  }
+  // for (auto & ch_correlatedMetaPrimitives: filtCorrelatedMetaPrimitives) {
+      // for (unsigned int i = 0; i < ch_correlatedMetaPrimitives.second.size(); i++) {
+      // std::cout << "filtered correlated mp " << i << ": ";
+      // printmPC(ch_correlatedMetaPrimitives.second.at(i));
+    // }
+  // }
   
   correlatedMetaPrimitives.clear();
   filteredMetaPrimitives.clear();
