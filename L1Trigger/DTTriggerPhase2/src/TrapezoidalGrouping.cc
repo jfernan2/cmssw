@@ -159,7 +159,7 @@ void TrapezoidalGrouping::setInChannels(const DTDigiCollection *digis, int sl) {
   for (const auto &dtLayerId_It : *digis) {
     const DTLayerId dtLId = dtLayerId_It.first;
 
-    // if (dtLId.wheel() != -2 || dtLId.sector() != 2 || dtLId.station() != 1)
+    // if (dtLId.wheel() != -1 || dtLId.sector() != 6 || dtLId.station() != 1)
       // continue;
 
     if (dtLId.superlayer() != sl + 1)
@@ -203,7 +203,9 @@ std::vector<DTPrimitives> TrapezoidalGrouping::group_hits(DTPrimitive pivot_hit,
 
     // do not consider hits that arrived later than the pivot hit or that already left
     // the allowed frame (BX) window
-    if (hit.tdcTimeStamp() > pivot_hit.tdcTimeStamp() ||  (pivot_hit_bx / BX_PER_FRAME) - (hit_bx / BX_PER_FRAME) > MAX_FRAME_DIF)
+    if ((hit.tdcTimeStamp() > pivot_hit.tdcTimeStamp())
+        || ((hit.tdcTimeStamp() == pivot_hit.tdcTimeStamp()) && (hit.layerId() < pivot_hit.layerId()))
+        ||  (pivot_hit_bx / BX_PER_FRAME) - (hit_bx / BX_PER_FRAME) > MAX_FRAME_DIF)
       continue;
 
     // limit the number of hits in the trapezoid to PATHFINDER_INPUT_HITS_LIMIT

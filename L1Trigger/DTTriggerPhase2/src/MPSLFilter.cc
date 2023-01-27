@@ -101,14 +101,14 @@ int MPSLFilter::match(cmsdt::metaPrimitive mp, cmsdt::metaPrimitive mp2) {
     return 1;
 
   // CONFIRMATION, FIXME ///////////////////////////
-  if (mp.quality == CLOWQ && mp2.quality == HIGHQ) {
-    if (share_hit(mp, mp2)) return 2;
-    return 3;
-  }
-  if (mp.quality == HIGHQ && mp2.quality == CLOWQ) {
-    if (share_hit(mp, mp2)) return 4;
-    return 5;
-  }
+  // if (mp.quality == CLOWQ && mp2.quality == HIGHQ) {
+    // if (share_hit(mp, mp2)) return 2;
+    // return 3;
+  // }
+  // if (mp.quality == HIGHQ && mp2.quality == CLOWQ) {
+    // if (share_hit(mp, mp2)) return 4;
+    // return 5;
+  // }
   //////////////////////////////////////////////////
 
   if (mp.quality > mp2.quality) {
