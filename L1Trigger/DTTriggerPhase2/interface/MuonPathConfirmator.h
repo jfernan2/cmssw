@@ -60,6 +60,9 @@ private:
   //shift
   edm::FileInPath shift_filename_;
   std::map<int, float> shiftinfo_;
+  edm::FileInPath maxdrift_filename_;
+  int maxdriftinfo_[5][4][14];
+  int max_drift_tdc = -1;
 
   int PARTIALS_PRECISSION = 4;
   int SEMICHAMBER_H_PRECISSION = 13 + PARTIALS_PRECISSION;

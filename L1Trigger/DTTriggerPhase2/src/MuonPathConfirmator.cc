@@ -30,6 +30,17 @@ MuonPathConfirmator::MuonPathConfirmator(const ParameterSet &pset,
     shiftinfo_[rawId] = shift;
   }
 
+  int wh, st, se, maxdrift;
+  maxdrift_filename_ = pset.getParameter<edm::FileInPath>("maxdrift_filename");
+  std::ifstream ifind(maxdrift_filename_.fullPath());
+  if (ifind.fail()) {
+    throw cms::Exception("Missing Input File")
+        << "MPSLFilter::MPSLFilter() -  Cannot find " << maxdrift_filename_.fullPath();
+  }
+  while (ifind.good()) {
+    ifind >> wh >> st >> se >> maxdrift;
+    maxdriftinfo_[wh][st][se] = maxdrift;
+  }
 }
 
 MuonPathConfirmator::~MuonPathConfirmator() {
@@ -52,6 +63,13 @@ void MuonPathConfirmator::run(edm::Event &iEvent,
 
   // fit per SL (need to allow for multiple outputs for a single mpath)
   // for (auto &muonpath : muonpaths) {
+  if (inMetaPrimitives.size() > 0) {
+    int dum_sl_rawid = inMetaPrimitives[0].rawId;
+    DTSuperLayerId dumSlId(dum_sl_rawid);
+    DTChamberId ChId(dumSlId.wheel(), dumSlId.station(), dumSlId.sector());
+    max_drift_tdc = maxdriftinfo_[dumSlId.wheel() + 2][dumSlId.station() - 1][dumSlId.sector() - 1];
+  }
+  
   for (auto & mp: inMetaPrimitives) {
     analyze(mp, dtdigis, outMetaPrimitives);
   }
@@ -120,8 +138,8 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
     bool hitFromSL3 = (dtSLId.rawId() == sl3Id.rawId());
     if (!(hitFromSL1 || hitFromSL3)) // checking hits are from one of the other SL of the same chamber
       continue;
-    double minx = 10 * minx_match_2digis_ * ((double) MAXDRIFTTDC / (double) CELL_SEMILENGTH);
-    double min2x = 10 * minx_match_2digis_ * ((double) MAXDRIFTTDC / (double) CELL_SEMILENGTH);
+    double minx = 10 * minx_match_2digis_ * ((double) max_drift_tdc / (double) CELL_SEMILENGTH);
+    double min2x = 10 * minx_match_2digis_ * ((double) max_drift_tdc / (double) CELL_SEMILENGTH);
     if (isSL1 != hitFromSL1) { // checking hits have the opposite SL than the TP
       for (auto digiIt = (dtLayerId_It.second).first; digiIt != (dtLayerId_It.second).second; ++digiIt) {
         if ((*digiIt).time() < mp.t0)
@@ -133,8 +151,8 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
         if (hitFromSL3)
           wp_semicells -= (int) round((sl_shift_cm * 10) / CELL_SEMILENGTH);
         // std::cout << (*digiIt).wire() - 1  << " " << wp_semicells << std::endl;
-        double hit_position = wp_semicells * MAXDRIFTTDC + ((*digiIt).time() - mp.t0) * (double) TIME_TO_TDC_COUNTS / (double) LHC_CLK_FREQ;
-        double hit_position_left  = wp_semicells * MAXDRIFTTDC - ((*digiIt).time() - mp.t0) * (double) TIME_TO_TDC_COUNTS / (double) LHC_CLK_FREQ;
+        double hit_position = wp_semicells * max_drift_tdc + ((*digiIt).time() - mp.t0) * (double) TIME_TO_TDC_COUNTS / (double) LHC_CLK_FREQ;
+        double hit_position_left  = wp_semicells * max_drift_tdc - ((*digiIt).time() - mp.t0) * (double) TIME_TO_TDC_COUNTS / (double) LHC_CLK_FREQ;
         // extrapolating position to the layer of the hit
         // mp.position is referred to the center between SLs, so one has to add half the distance between SLs
         // + half a cell height to get to the first wire + ly * cell height to reach the desired ly

@@ -940,6 +940,8 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
           sl = 3;
       }
 
+      float tp_t0 = (metaPrimitiveIt.t0 - shift_back * LHC_CLK_FREQ) * ((float) TIME_TO_TDC_COUNTS / (float) LHC_CLK_FREQ);
+
       if (debug_)
         LogDebug("DTTrigPhase2Prod") << "pushing back phase-2 dataformat carlo-federica dataformat";
 
@@ -983,7 +985,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
                                     (int)round(metaPrimitiveIt.phiB * PHIBRES_CONV),             // uphib (m_phiBending)
                                     metaPrimitiveIt.quality,                                     // uqua  (m_qualityCode)
                                     metaPrimitiveIt.index,                                       // uind  (m_segmentIndex)
-                                    (int)round(metaPrimitiveIt.t0) - shift_back * LHC_CLK_FREQ,  // ut0   (m_t0Segment)
+                                    tp_t0,                                                       // ut0   (m_t0Segment)
                                     (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
                                     (int)round(metaPrimitiveIt.x * 1000),                        // ux    (m_xLocal)
                                     (int)round(metaPrimitiveIt.tanPhi * 1000),                   // utan  (m_tanPsi)
@@ -1006,7 +1008,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
               (int)round(metaPrimitiveIt.phiB * PHIBRES_CONV),             // uphib (m_phiBending)
               metaPrimitiveIt.quality,                                     // uqua (m_qualityCode)
               metaPrimitiveIt.index,                                       // uind (m_segmentIndex)
-              (int)round(metaPrimitiveIt.t0) - shift_back * LHC_CLK_FREQ,  // ut0 (m_t0Segment)
+              tp_t0,                                                       // ut0 (m_t0Segment)
               (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
               metaPrimitiveIt.rpcFlag                                      // urpc (m_rpcFlag)
               ));
@@ -1032,7 +1034,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
                                     (int)round(metaPrimitiveIt.phiB * KRES_CONV),                // uk    (m_kSlope)
                                     metaPrimitiveIt.quality,                                     // uqua  (m_qualityCode)
                                     metaPrimitiveIt.index,                                       // uind  (m_segmentIndex)
-                                    (int)round(metaPrimitiveIt.t0) - shift_back * LHC_CLK_FREQ,  // ut0   (m_t0Segment)
+                                    tp_t0,                                                       // ut0   (m_t0Segment)
                                     (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
                                     (int)round(metaPrimitiveIt.x * 1000),                        // ux    (m_yLocal)
                                     (int)round(metaPrimitiveIt.phi_cmssw * PHIRES_CONV),         // uphi  (m_zCMSSW)
@@ -1053,7 +1055,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
               (int)round(metaPrimitiveIt.phiB * KRES_CONV),                // uk (m_kSlope)
               metaPrimitiveIt.quality,                                     // uqua (m_qualityCode)
               metaPrimitiveIt.index,                                       // uind (m_segmentIndex)
-              (int)round(metaPrimitiveIt.t0) - shift_back * LHC_CLK_FREQ,  // ut0 (m_t0Segment)
+              tp_t0,                                                       // ut0 (m_t0Segment)
               (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
               metaPrimitiveIt.rpcFlag                                      // urpc (m_rpcFlag)
               ));
@@ -1328,6 +1330,7 @@ void DTTrigPhase2Prod::fillDescriptions(edm::ConfigurationDescriptions& descript
   desc.add<edm::FileInPath>("lut_sl3", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/fitterlut_sl3.dat"));
   desc.add<edm::FileInPath>("lut_2sl", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/fitterlut_2sl.dat"));
   desc.add<edm::FileInPath>("shift_filename", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/wire_rawId_x.txt"));
+  desc.add<edm::FileInPath>("maxdrift_filename", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/drift_time_per_chamber.txt"));
   desc.add<edm::FileInPath>("shift_theta_filename", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/theta_shift.txt"));
   desc.add<edm::FileInPath>("global_coords_filename",
                             edm::FileInPath("L1Trigger/DTTriggerPhase2/data/global_coord_perp_x_phi0.txt"));

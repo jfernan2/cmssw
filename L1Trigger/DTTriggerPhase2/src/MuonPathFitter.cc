@@ -31,6 +31,18 @@ MuonPathFitter::MuonPathFitter(const ParameterSet &pset,
     shiftinfo_[rawId] = shift;
   }
 
+  int wh, st, se, maxdrift;
+  maxdrift_filename_ = pset.getParameter<edm::FileInPath>("maxdrift_filename");
+  std::ifstream ifind(maxdrift_filename_.fullPath());
+  if (ifind.fail()) {
+    throw cms::Exception("Missing Input File")
+        << "MPSLFilter::MPSLFilter() -  Cannot find " << maxdrift_filename_.fullPath();
+  }
+  while (ifind.good()) {
+    ifind >> wh >> st >> se >> maxdrift;
+    maxdriftinfo_[wh][st][se] = maxdrift;
+  }
+
   dtGeomH = iC.esConsumes<DTGeometry, MuonGeometryRecord, edm::Transition::BeginRun>();
   globalcoordsobtainer_ = globalcoordsobtainer;
 }
@@ -58,7 +70,8 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
                                      int PRECISSION_SLOPE,
                                      int PROD_RESIZE_T0,
                                      int PROD_RESIZE_POSITION,
-                                     int PROD_RESIZE_SLOPE) {
+                                     int PROD_RESIZE_SLOPE,
+                                     int MAX_DRIFT_TDC) {
 
   const int PARTIALS_PRECISSION = 4;
   // const int NORM_TIME_WIDTH = 10;
@@ -365,7 +378,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   }
 
   // minimum and maximum fit t0
-  int min_t0 = max_hit_time - MAXDRIFTTDC - T0_CUT_TOLERANCE;
+  int min_t0 = max_hit_time - MAX_DRIFT_TDC - T0_CUT_TOLERANCE;
   int max_t0 = min_hit_time + T0_CUT_TOLERANCE;
 
   // std::cout << "Clock cycle 8 finished" << std::endl;
@@ -453,7 +466,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   // Impose the thresholds
   // if (chi2 > 16 * 16)
   // std::cout << "chi2 " << chi2 << std::endl;
-  if (chi2 > (chi2Th_ / (std::pow(((float) CELL_SEMILENGTH / (float) MAXDRIFTTDC), 2) / 100))) // FIXME
+  if (chi2 > (chi2Th_ / (std::pow(((float) CELL_SEMILENGTH / (float) MAX_DRIFT_TDC), 2) / 100))) // FIXME
     return fit_common_out_t();
 
   // double chi2_f = double(chi2) / (16. * 64. * 100.);

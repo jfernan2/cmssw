@@ -117,10 +117,10 @@ void TrapezoidalGrouping::run(Event &iEvent,
           std::stable_sort(ptrPrimitive.begin(), ptrPrimitive.end(), hitLayerSort);
 
           // Filtering primitive to test fitting, to remove later
-          // if (ptrPrimitive[0].channelId() != 64 || ptrPrimitive[0].tdcTimeStamp() != 10663 ||
-             // ptrPrimitive[1].channelId() != 65 || ptrPrimitive[1].tdcTimeStamp() != 10678 ||
-             // ptrPrimitive[2].channelId() != 64 || ptrPrimitive[2].tdcTimeStamp() != 10715 ||
-             // ptrPrimitive[3].channelId() != 65 || ptrPrimitive[3].tdcTimeStamp() != 10596)
+          // if (ptrPrimitive[0].channelId() != 30 || ptrPrimitive[0].tdcTimeStamp() != 10673 ||
+             // ptrPrimitive[1].channelId() != 30 || ptrPrimitive[1].tdcTimeStamp() != 10693 ||
+             // ptrPrimitive[2].channelId() != 30 || ptrPrimitive[2].tdcTimeStamp() != 10702 ||
+             // ptrPrimitive[3].channelId() != 30 || ptrPrimitive[3].tdcTimeStamp() != 10678)
            // continue;
           // if (ptrPrimitive[0].channelId() != 30 || ptrPrimitive[0].tdcTimeStamp() != 10836 ||
               // ptrPrimitive[2].channelId() != 30 || ptrPrimitive[2].tdcTimeStamp() != 10696 ||

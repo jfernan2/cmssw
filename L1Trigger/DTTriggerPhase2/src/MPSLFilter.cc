@@ -28,6 +28,7 @@ void MPSLFilter::run(edm::Event &iEvent,
     int dum_sl_rawid = inMPaths[0].rawId;
     DTSuperLayerId dumSlId(dum_sl_rawid);
     DTChamberId ChId(dumSlId.wheel(), dumSlId.station(), dumSlId.sector());
+    max_drift_tdc = maxdriftinfo_[dumSlId.wheel() + 2][dumSlId.station() - 1][dumSlId.sector() - 1];
     DTSuperLayerId sl1Id(ChId.rawId(), 1);
     DTSuperLayerId sl3Id(ChId.rawId(), 3);
 
@@ -153,7 +154,7 @@ int MPSLFilter::get_chi2(cmsdt::metaPrimitive mp) {
   // (without the first 1). So comparing these reduced-width unsigned
   // values is equivalent to comparing rounded versions of the chi2
 
-  int chi2 = (int) round(mp.chi2 / (std::pow(((float) CELL_SEMILENGTH / (float) MAXDRIFTTDC), 2) / 100));
+  int chi2 = (int) round(mp.chi2 / (std::pow(((float) CELL_SEMILENGTH / (float) max_drift_tdc), 2) / 100));
 
   std::vector<int> chi2_unsigned, chi2_unsigned_msb;
   vhdl_int_to_unsigned(chi2, chi2_unsigned);

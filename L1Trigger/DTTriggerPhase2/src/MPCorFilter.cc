@@ -36,6 +36,8 @@ void MPCorFilter::run(edm::Event &iEvent,
   if (inSLMPaths.size() > 0) {
     int dum_sl_rawid = inSLMPaths[0].rawId;
     DTSuperLayerId dumSlId(dum_sl_rawid);
+    
+    max_drift_tdc = maxdriftinfo_[dumSlId.wheel() + 2][dumSlId.station() - 1][dumSlId.sector() - 1];
     DTChamberId ChId(dumSlId.wheel(), dumSlId.station(), dumSlId.sector());
     DTSuperLayerId sl1Id(ChId.rawId(), 1);
     sl1Id_rawid = sl1Id.rawId();
@@ -173,7 +175,7 @@ std::vector<int> MPCorFilter::coarsify(cmsdt::metaPrimitive mp, int sl) {
   float pos_ch_f = mp.x;
 
   // translating into tdc counts
-  // int pos_ch = int(round(pos_ch_f / (((float) CELL_SEMILENGTH / (float) MAXDRIFTTDC) / 10)));
+  // int pos_ch = int(round(pos_ch_f / (((float) CELL_SEMILENGTH / (float) max_drift_tdc) / 10)));
   int pos_ch = int(round(pos_ch_f));
   // int slope = (int) (-mp.tanPhi / (SLOPE_LSB * INCREASED_RES_SLOPE_POW));
   int slope = (int) (mp.tanPhi);
@@ -281,7 +283,7 @@ int MPCorFilter::killTps(cmsdt::metaPrimitive mp, std::vector<int> coarsed,
 int MPCorFilter::get_chi2(cmsdt::metaPrimitive mp) {
   // chi2 is coarsified to the index of the chi2's highest bit set to 1
 
-  int chi2 = (int) round(mp.chi2 / (std::pow(((float) CELL_SEMILENGTH / (float) MAXDRIFTTDC), 2) / 100));
+  int chi2 = (int) round(mp.chi2 / (std::pow(((float) CELL_SEMILENGTH / (float) max_drift_tdc), 2) / 100));
 
   std::vector<int> chi2_unsigned, chi2_unsigned_msb;
   vhdl_int_to_unsigned(chi2, chi2_unsigned);

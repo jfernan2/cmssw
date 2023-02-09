@@ -255,7 +255,8 @@ namespace cmsdt {
   constexpr int WIDTH_FULL_SLOPE = 14;
   constexpr int WIDTH_FULL_CHI2 = 16;
   constexpr int WIREPOS_WIDTH = 17;
-  constexpr int WIREPOS_NORM_LSB_IGNORED = 9;
+  // constexpr int WIREPOS_NORM_LSB_IGNORED = 9;
+  constexpr int WIREPOS_NORM_LSB_IGNORED = 3;
   constexpr int WIDTH_POS_SLOPE_CORR = 9;
 
   constexpr int XI_SL_WIDTH = 12;
@@ -303,7 +304,8 @@ namespace cmsdt {
 
   // In ns (maximum drift time inside the cell)
   constexpr float MAXDRIFT = 387;
-  constexpr float MAXDRIFTTDC = 495; // we could make this value depend on the chamber, to be seen
+  constexpr float MAXDRIFTTDC = 496; // we could make this value depend on the chamber, to be seen
+
   // In mm (cell dimmensions)
   constexpr int CELL_HEIGHT = 13;
   constexpr float CELL_SEMIHEIGHT = 6.5;

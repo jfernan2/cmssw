@@ -67,6 +67,16 @@ void MuonPathSLFitter::run(edm::Event &iEvent,
 
   // fit per SL (need to allow for multiple outputs for a single mpath)
   // for (auto &muonpath : muonpaths) {
+  if (muonpaths.size() > 0) {
+    auto muonpath = muonpaths[0];
+    int rawId = muonpath->primitive(0)->cameraId();
+    if (muonpath->primitive(0)->cameraId() == -1) {
+      rawId = muonpath->primitive(1)->cameraId();
+    }
+    const DTLayerId dtLId(rawId);
+    max_drift_tdc = maxdriftinfo_[dtLId.wheel() + 2][dtLId.station() - 1][dtLId.sector() - 1];
+  }
+      
   for (size_t i = 0; i < muonpaths.size(); i++) {
     // std::cout << "Starting with muon path " << i << std::endl;
     auto muonpath = muonpaths[i];
@@ -138,9 +148,9 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
           wp_semicells -= 1;
         if (isl == 1)
           wp_semicells -= (int) round((sl_shift_cm * 10) / CELL_SEMILENGTH);
-        float wp_tdc = wp_semicells * MAXDRIFTTDC;
-        // float wp_f = ((10. * shiftinfo_[rawId] / CELL_SEMILENGTH) * MAXDRIFTTDC);
-        // std::cout << "WPF: " << wp_f << " " <<  MAXDRIFTTDC << " " << shiftinfo_[rawId] << " " << (10. * shiftinfo_[rawId] / CELL_SEMILENGTH) << " " << rawId << std::endl;
+        float wp_tdc = wp_semicells * max_drift_tdc;
+        // float wp_f = ((10. * shiftinfo_[rawId] / CELL_SEMILENGTH) * max_drift_tdc);
+        // std::cout << "WPF: " << wp_f << " " <<  max_drift_tdc << " " << shiftinfo_[rawId] << " " << (10. * shiftinfo_[rawId] / CELL_SEMILENGTH) << " " << rawId << std::endl;
         int wp = (int) ((long int)(round(wp_tdc * std::pow(2, WIREPOS_WIDTH))) / (int) std::pow(2, WIREPOS_WIDTH));
         // std::cout << "ly: " << ly << " wi:" << wi << " " << " WP: " << wp << std::endl;
         fit_common_in.hits.push_back({ti, wi, ly, wp});
@@ -210,7 +220,12 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
     // std::cout << inMPath->primitive(0)->tdcTimeStamp() << " ";
     // std::cout << inMPath->primitive(1)->tdcTimeStamp() << " ";
     // std::cout << inMPath->primitive(2)->tdcTimeStamp() << " ";
-    // std::cout << inMPath->primitive(3)->tdcTimeStamp() << std::endl;
+    // std::cout << inMPath->primitive(3)->tdcTimeStamp() << " ";
+    // std::cout << lat_comb[0] << " ";
+    // std::cout << lat_comb[1] << " ";
+    // std::cout << lat_comb[2] << " ";
+    // std::cout << lat_comb[3] << " ";
+    // std::cout << std::endl;
 
     auto fit_common_out = fit(fit_common_in,
                               XI_SL_WIDTH,
@@ -222,32 +237,33 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
                               PRECISSION_SL_SLOPE,
                               PROD_RESIZE_SL_T0,
                               PROD_RESIZE_SL_POSITION,
-                              PROD_RESIZE_SL_SLOPE);
+                              PROD_RESIZE_SL_SLOPE,
+                              max_drift_tdc);
     // std::cout << "Valid fit: " << fit_common_out.valid_fit << std::endl;
     if (fit_common_out.valid_fit == 1) {
       float t0_f = ((float) fit_common_out.t0) * (float) LHC_CLK_FREQ / (float) TIME_TO_TDC_COUNTS;
-      
+
       // std::cout << fit_common_out.t0 << " " << t0_f << std::endl;
-      
-      float slope_f = -fit_common_out.slope * SLOPE_LSB;
+
+      float slope_f = -fit_common_out.slope * ((float) CELL_SEMILENGTH / max_drift_tdc) * (1) / (CELL_SEMIHEIGHT * 16.);
       // std::cout << std::abs(slope_f) << " " << tanPhiTh_ << std::endl;
       if (std::abs(slope_f) > tanPhiTh_)
-        return;
+        continue;
 
       // std::cout << "SLOPE: " << fit_common_out.slope  << " " << SLOPE_LSB << " " << slope_f << std::endl;
       // float pos_sl_f = ((float) (fit_common_out.position) + (sl - 1) * (fit_common_out.slope / 16.))
-        // * ((float) CELL_SEMILENGTH / (float) MAXDRIFTTDC);
+        // * ((float) CELL_SEMILENGTH / (float) max_drift_tdc);
       // std::cout << "POSITION: " << fit_common_out.position << " " << ((float) (fit_common_out.position) + (sl - 1) * (fit_common_out.slope / 16.)) << " " << ((float) (fit_common_out.position) + (sl - 1) * (fit_common_out.slope / 16.))
-         // ((float) CELL_SEMILENGTH / (float) MAXDRIFTTDC) << std::endl;
+         // ((float) CELL_SEMILENGTH / (float) max_drift_tdc) << std::endl;
       // pos_sl_f /= 10.;
       DTWireId wireId(MuonPathSLId, 2, 1);
-      float pos_ch_f = (float) (fit_common_out.position) * ((float) CELL_SEMILENGTH / (float) MAXDRIFTTDC) / 10;
+      float pos_ch_f = (float) (fit_common_out.position) * ((float) CELL_SEMILENGTH / (float) max_drift_tdc) / 10;
       pos_ch_f += (SL1_CELLS_OFFSET * CELL_LENGTH) / 10.;
       pos_ch_f += shiftinfo_[wireIdSL1.rawId()];
       // if (sl == 2)
         // pos_ch_f -= sl_shift_cm;
       float pos_sl_f = pos_ch_f - (sl - 1) * slope_f * VERT_PHI1_PHI3 / 2;
-      float chi2_f = fit_common_out.chi2 * std::pow(((float) CELL_SEMILENGTH / (float) MAXDRIFTTDC), 2) / 100;
+      float chi2_f = fit_common_out.chi2 * std::pow(((float) CELL_SEMILENGTH / (float) max_drift_tdc), 2) / 100;
 
       // obtention of global coordinates using luts
       // std::cout << "SL" << sl << " " << shiftinfo_[wireId.rawId()] << std::endl;
@@ -260,16 +276,17 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
 
       // obtention of global coordinates using cmssw geometry
       double z = 0;
-      double z1 = Z_POS_SL;
-      double z3 = -1. * z1;
+      // double z1 = Z_POS_SL;
+      // double z3 = -1. * z1;
       if (ChId.station() == 3 or ChId.station() == 4) {
-        z1 = z1 + Z_SHIFT_MB4;
-        z3 = z3 + Z_SHIFT_MB4;
+        // z1 = z1 + Z_SHIFT_MB4;
+        // z3 = z3 + Z_SHIFT_MB4;
+        z = Z_SHIFT_MB4;
       }
-      if (MuonPathSLId.superLayer() == 1)
-        z = z1;
-      else if (MuonPathSLId.superLayer() == 3)
-        z = z3;
+      // if (MuonPathSLId.superLayer() == 1)
+        // z = z1;
+      // else if (MuonPathSLId.superLayer() == 3)
+        // z = z3;
       GlobalPoint jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(pos_sl_f, 0., z));
       int thisec = ChId.sector();
       if (thisec == 13)

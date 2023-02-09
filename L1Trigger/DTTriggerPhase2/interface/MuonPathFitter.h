@@ -75,7 +75,12 @@ public:
   //shift
   edm::FileInPath shift_filename_;
   std::map<int, float> shiftinfo_;
-  
+
+  // max drift velocity
+  edm::FileInPath maxdrift_filename_;
+  int maxdriftinfo_[5][4][14];
+  int max_drift_tdc = -1;
+
   int get_rom_addr(MuonPathPtr &inMPath, latcomb lats);
   fit_common_out_t fit(fit_common_in_t fit_common_in,
                        int XI_WIDTH,
@@ -87,7 +92,8 @@ public:
                        int PRECISSION_SLOPE,
                        int PROD_RESIZE_T0,
                        int PROD_RESIZE_POSITION,
-                       int PROD_RESIZE_SLOPE);
+                       int PROD_RESIZE_SLOPE,
+                       int MAX_DRIFT_TDC);
 
   double tanPhiTh_;
   const bool debug_;
@@ -95,6 +101,7 @@ public:
 
   // global coordinates
   std::shared_ptr<GlobalCoordsObtainer> globalcoordsobtainer_;
+
 
 private:
   // Private methods
