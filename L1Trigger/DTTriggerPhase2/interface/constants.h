@@ -255,8 +255,7 @@ namespace cmsdt {
   constexpr int WIDTH_FULL_SLOPE = 14;
   constexpr int WIDTH_FULL_CHI2 = 16;
   constexpr int WIREPOS_WIDTH = 17;
-  // constexpr int WIREPOS_NORM_LSB_IGNORED = 9;
-  constexpr int WIREPOS_NORM_LSB_IGNORED = 3;
+  constexpr int WIREPOS_NORM_LSB_IGNORED = 9;
   constexpr int WIDTH_POS_SLOPE_CORR = 9;
 
   constexpr int XI_SL_WIDTH = 12;
