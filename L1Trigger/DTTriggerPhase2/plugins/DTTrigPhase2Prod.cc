@@ -395,7 +395,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
     }
   }
-  
+
   // for (auto & ch_muonpaths: muonpaths) {
     // for (unsigned int i = 0; i < ch_muonpaths.second.size(); i++) {
       // std::cout << iEvent.id().event() << "      mpath " << i << ": ";
@@ -406,7 +406,6 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       // std::cout << std::endl;
     // }
   // }
-  
 
   std::map<int, std::vector<lat_vector>> lateralities;
   if (!output_mixer_) {
@@ -911,9 +910,10 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   vector<L1Phase2MuDTExtThDigi> outExtP2Th;
 
   // Assigning index value
-  for (auto & ch_correlatedMetaPrimitives: filtCorrelatedMetaPrimitives) {
-    assignIndex(ch_correlatedMetaPrimitives.second);
-  }
+  if (!skip_processing_)
+    for (auto & ch_correlatedMetaPrimitives: filtCorrelatedMetaPrimitives) {
+      assignIndex(ch_correlatedMetaPrimitives.second);
+    }
 
   for (auto & ch_correlatedMetaPrimitives: filtCorrelatedMetaPrimitives) {
     for (const auto& metaPrimitiveIt : ch_correlatedMetaPrimitives.second) {

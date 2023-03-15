@@ -108,7 +108,7 @@ std::vector<short> LateralityCoarsedProvider::coarsify_times(MuonPathPtr &inMPat
     }
     auto coarsified_time = max_time - inMPath->primitive(layer)->tdcTimeStamp();
     // transform into tdc counts
-    coarsified_time  = (coarsified_time * TIME_TO_TDC_COUNTS) / LHC_CLK_FREQ;
+    coarsified_time  = (int) round(((float) TIME_TO_TDC_COUNTS/ (float) LHC_CLK_FREQ) * coarsified_time);
     // keep the LAT_MSB_BITS
     coarsified_time = coarsified_time >> (LAT_TOTAL_BITS - LAT_MSB_BITS);
 

@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <stack>
 
 // ===============================================================================
 // Previous definitions and declarations
@@ -35,13 +36,13 @@
                 ---------
 */
 
-bool hitTimeSort(const DTPrimitive& hit1, const DTPrimitive& hit2)
+bool hitWireSort(const DTPrimitive& hit1, const DTPrimitive& hit2)
 {
-  int tdc1 = hit1.tdcTimeStamp();
-  int tdc2 = hit2.tdcTimeStamp();
+  int wi1 = hit1.channelId();
+  int wi2 = hit2.channelId();
 
-  if (tdc1 < tdc2) return true;
-  return false;
+  if (wi1 < wi2) return true;
+  else return false;
 }
 
 bool hitLayerSort(const DTPrimitive& hit1, const DTPrimitive& hit2)
@@ -50,8 +51,21 @@ bool hitLayerSort(const DTPrimitive& hit1, const DTPrimitive& hit2)
   int lay2 = hit2.layerId();
 
   if (lay1 < lay2) return true;
-  return false;
+  else if (lay1 > lay2) return false;
+  else return hitWireSort(hit1, hit2);
 }
+
+bool hitTimeSort(const DTPrimitive& hit1, const DTPrimitive& hit2)
+{
+  int tdc1 = hit1.tdcTimeStamp();
+  int tdc2 = hit2.tdcTimeStamp();
+
+  if (tdc1 < tdc2) return true;
+  else if (tdc1 > tdc2) return false;
+  else return hitLayerSort(hit1, hit2);
+}
+
+
 
 namespace dtamgrouping {
   /* Cell's combination, following previous labeling, to obtain every possible  muon's path. 
@@ -111,27 +125,27 @@ private:
 
   // The trapezoid is as follows:
   // [  0  ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][  8  ]
-  //
+
   // And maps to the physical cells as follows:
-  //
+
   // Pivot in layer 1 = "00" 
   // [  5  ][  6  ][  7  ][  8  ] Layer C 
   //    [  2  ][  3  ][  4  ]     Layer B 
   //        [  0  ][  1  ]        Layer A
   //            Pivot 
-  //
+
   // Pivot in layer 2 = "01" 
   //    [  2  ][  3  ][  4  ]     Layer B 
   //        [  0  ][  1  ]        Layer A
   //            Pivot 
   //        [ 6,8 ][ 5,7 ]        Layer C 
-  //
+
   // Pivot in layer 3 = "10"
   //        [ 6,8 ][ 5,7 ]        Layer C 
   //            Pivot 
   //        [  0  ][  1  ]        Layer A
   //    [  2  ][  3  ][  4  ]     Layer B 
-  //
+
   // Pivot in layer 4 = "11" 
   //            Pivot 
   //        [  0  ][  1  ]        Layer A
@@ -227,8 +241,6 @@ private:
     {-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2}
   };
 
-  
-  
 };
 
 #endif

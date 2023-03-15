@@ -106,6 +106,8 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   *******************************/
   std::vector<int> normalized_times;
   std::vector<int> normalized_wirepos;
+  // std::cout << "coarse_bctr " << (fit_common_in.coarse_bctr) << std::endl;
+
   for (int i = 0; i < 2 * NUM_LAYERS; i++) {
     // std::cout << i << std::endl;
     // normalized times
@@ -141,9 +143,9 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
 
       normalized_times.push_back(tmp_norm_time);
       // std::cout << "normalized_times[" << i << "]=" << normalized_times[i] << std::endl;
-      int tmp_wirepos = fit_common_in.hits[i].wp - 
+      int tmp_wirepos = fit_common_in.hits[i].wp -
         (fit_common_in.coarse_wirepos << WIREPOS_NORM_LSB_IGNORED);
-    // std::cout fit_common_in.hits[i].wp << " " << fit_common_in.coarse_wirepos << " " << tmp_wirepos << std::endl;
+      // std::cout << fit_common_in.hits[i].wp << " " << fit_common_in.coarse_wirepos << " " << tmp_wirepos << std::endl;
       // resize test
       std::vector<int> tmp_wirepos_vector;
       vhdl_int_to_signed(tmp_wirepos, tmp_wirepos_vector);
@@ -174,7 +176,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   *******************************/
 
   std::vector<int> xi_arr;
-  // min and max times are computed throught several clk cycles in the fw, 
+  // min and max times are computed throught several clk cycles in the fw,
   // here we compute it at once
   int min_hit_time = 999999, max_hit_time = 0;
   // std::cout << "Normalized times: " << std::endl;
@@ -192,7 +194,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
       if (!vhdl_resize_signed_ok(tmp_xi_incr_vector, XI_WIDTH))
         return fit_common_out_t();
       xi_arr.push_back(tmp_xi_incr);
-    // std::cout "xi_arr[" << i << "]=" << xi_arr[i] << std::endl;
+      // std::cout << "xi_arr[" << i << "]=" << xi_arr[i] << std::endl;
       // std::cout << "normalized_times[" << i << "]=" << normalized_times[i] << std::endl;
 
       // calculate min and max times
@@ -267,7 +269,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   std::vector<int> t0_prec_vector, position_prec_vector, slope_prec_vector;
   // std::cout << "T0" << std::endl;
   vhdl_int_to_signed(t0_prec, t0_prec_vector);
-  // std::cout << t0_prec << " ";
+  // std::cout << "t0_prec " << t0_prec << std::endl;
   // for (auto & elem: t0_prec_vector) {
     // std::cout << elem;
   // }
@@ -309,7 +311,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   int norm_position = ((position_prec >> (PARTIALS_PRECISSION - 1)) + 1) >> 1;
   int norm_slope = ((slope_prec >> (PARTIALS_PRECISSION - 1)) + 1) >> 1;
 
-  // std::cout << "normt0 " << norm_t0 << " norm_position " << norm_position << " norm_slope " << norm_slope << std::endl; 
+  // std::cout << "normt0 " << norm_t0 << " norm_position " << norm_position << " norm_slope " << norm_slope << std::endl;
 
   // Calculate the (-xi) + pos (+/-) t0, which only is lacking the slope term to become the residuals
   std::vector<int> res_partials_arr;
@@ -323,7 +325,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
 
       // std::cout << "position_prec=" << position_prec;
       // std::cout << " xi_arr[i]=" << xi_arr[i] * (int) std::pow(2, PARTIALS_PRECISSION);
-      // std::cout << " tmp_position_prec[" << i << "]=" << tmp_position_prec << std::endl; 
+      // std::cout << " tmp_position_prec[" << i << "]=" << tmp_position_prec << std::endl;
 
       tmp_position_prec += (-1 + 2 * fit_common_in.lateralities[i]) * t0_prec;
       res_partials_arr.push_back(tmp_position_prec);
@@ -465,8 +467,9 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
 
   // Impose the thresholds
   // if (chi2 > 16 * 16)
-  // std::cout << "chi2 " << chi2 << std::endl;
-  if (chi2 > (chi2Th_ / (std::pow(((float) CELL_SEMILENGTH / (float) MAX_DRIFT_TDC), 2) / 100))) // FIXME
+  // std::cout << "chi2 " << chi2 << " chi2/16 " << chi2 / 16 << " th f " << chi2Th_ << " th int " << round(chi2Th_ * (std::pow((float) MAX_DRIFT_TDC / ((float) CELL_SEMILENGTH / 10.), 2)) / 16.) << std::endl;
+
+  if (chi2 / 16 >= (int) round(chi2Th_ * (std::pow((float) MAX_DRIFT_TDC / ((float) CELL_SEMILENGTH / 10.), 2)) / 16.))
     return fit_common_out_t();
 
   // double chi2_f = double(chi2) / (16. * 64. * 100.);
@@ -485,7 +488,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
 
   // std::cout << "Clock cycle 10,11,12 finished" << std::endl;
 
-  return fit_common_out;  
+  return fit_common_out;
 }
 
 
