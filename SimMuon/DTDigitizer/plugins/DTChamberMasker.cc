@@ -90,7 +90,7 @@ private:
 //
 DTChamberMasker::DTChamberMasker(const edm::ParameterSet &iConfig)
     : m_digiToken(consumes<DTDigiCollection>(iConfig.getParameter<edm::InputTag>("digiTag"))),
-      m_agingObjToken(esConsumes<MuonSystemAging, MuonSystemAgingRcd>()) {
+      m_agingObjToken(esConsumes<MuonSystemAging, MuonSystemAgingRcd, edm::Transition::BeginRun>()) {
   produces<DTDigiCollection>();
 }
 
