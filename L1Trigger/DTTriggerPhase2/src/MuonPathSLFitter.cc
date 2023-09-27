@@ -32,6 +32,7 @@ MuonPathSLFitter::MuonPathSLFitter(const ParameterSet &pset,
 
   // LUTs
   sl1_filename_ = pset.getParameter<edm::FileInPath>("lut_sl1");
+  sl2_filename_ = pset.getParameter<edm::FileInPath>("lut_sl2"); 
   sl3_filename_ = pset.getParameter<edm::FileInPath>("lut_sl3");
 
   fillLuts();
@@ -111,14 +112,20 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
   DTChamberId ChId(MuonPathSLId.wheel(), MuonPathSLId.station(), MuonPathSLId.sector());
 
   DTSuperLayerId MuonPathSL1Id(dtDumlayerId.wheel(), dtDumlayerId.station(), dtDumlayerId.sector(), 1);
+  DTSuperLayerId MuonPathSL2Id(dtDumlayerId.wheel(), dtDumlayerId.station(), dtDumlayerId.sector(), 2);
   DTSuperLayerId MuonPathSL3Id(dtDumlayerId.wheel(), dtDumlayerId.station(), dtDumlayerId.sector(), 3);
   DTWireId wireIdSL1(MuonPathSL1Id, 2, 1);
+  DTWireId wireIdSL2(MuonPathSL2Id, 2, 1);
   DTWireId wireIdSL3(MuonPathSL3Id, 2, 1);
+  //if(sl==1) cout<<"wireIdSL2.rawId(): "<<wireIdSL2.rawId()<<endl;
   auto sl_shift_cm = shiftinfo_[wireIdSL1.rawId()] - shiftinfo_[wireIdSL3.rawId()];
-  
-  // std::cout << "SL" << sl << std::endl;
-  if (sl == 1)
-    return;
+  //auto sl_shift_cmSL2 = shiftinfo_[wireIdSL2.rawId()];
+  //cout<<"sl_shift_cm: "<<sl_shift_cm<<" sl_shift_cmSL2: "<<sl_shift_cmSL2<<endl;
+
+  //if(sl==1) std::cout << "SL" << sl+1 << std::endl;
+  //if (sl == 1)
+    //return;
+    //cout<<"SL Theta!!!"<<endl;
   fit_common_in_t fit_common_in;
 
   // 8-element vectors, for the 8 layers. As here we are fitting one SL only, we leave the other SL values as dummy ones
@@ -129,13 +136,19 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
   if (inMPath->missingLayer() != -1)
     quality = 1;
 
-  for (int isl = 0; isl < 2; isl++) {
+  int minISL = 1;
+  int maxISL = 3;
+  if(sl<1) {minISL=0; maxISL=2;}
+
+//  for (int isl = 0; isl < 2; isl++) {
+  for (int isl = minISL; isl < maxISL; isl++) {
     for (int i = 0; i < NUM_LAYERS; i++) {
-      if (isl * 2 == sl && inMPath->missingLayer() != i) {
+//      if (isl * 2 == sl && inMPath->missingLayer() != i) {
+      if (isl  == sl && inMPath->missingLayer() != i) {
         // Include both valid and non-valid hits. Non-valid values can be whatever, leaving all as -1 to make debugging easier.
         auto ti = inMPath->primitive(i)->tdcTimeStamp();
         if (ti != -1) ti = (int) round(((float) TIME_TO_TDC_COUNTS/ (float) LHC_CLK_FREQ) * ti);
-        // std::cout << "ti: " << ti << std::endl;
+         //std::cout << i <<" ti: " << ti << std::endl;
         auto wi = inMPath->primitive(i)->channelId();
         auto ly = inMPath->primitive(i)->layerId();
         // int layId = inMPath->primitive(i)->cameraId();
@@ -146,13 +159,17 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
         int wp_semicells = (wi - SL1_CELLS_OFFSET) * 2 + 1;
         if (ly % 2 == 1)
           wp_semicells -= 1;
-        if (isl == 1)
+//        if (isl == 1)
+        if (isl == 2)
           wp_semicells -= (int) round((sl_shift_cm * 10) / CELL_SEMILENGTH);
+        //else if (isl == 1)
+          //wp_semicells -= (int) round((sl_shift_cmSL2 * 10) / CELL_SEMILENGTH);
+          
         float wp_tdc = wp_semicells * max_drift_tdc;
         // float wp_f = ((10. * shiftinfo_[rawId] / CELL_SEMILENGTH) * max_drift_tdc);
         // std::cout << "WPF: " << wp_f << " " <<  max_drift_tdc << " " << shiftinfo_[rawId] << " " << (10. * shiftinfo_[rawId] / CELL_SEMILENGTH) << " " << rawId << std::endl;
         int wp = (int) ((long int)(round(wp_tdc * std::pow(2, WIREPOS_WIDTH))) / (int) std::pow(2, WIREPOS_WIDTH));
-        // std::cout << "ly: " << ly << " wi:" << wi << " " << " WP: " << wp << std::endl;
+        //std::cout << "ly: " << ly << " wi:" << wi << " " << " WP: " << wp << std::endl;
         fit_common_in.hits.push_back({ti, wi, ly, wp});
         // fill valids as well
         if (inMPath->missingLayer() == i) fit_common_in.hits_valid.push_back(0);
@@ -164,23 +181,27 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
     }
   }
 
+
   int smallest_time = 999999, tmp_coarse_wirepos_1 = -1, tmp_coarse_wirepos_3 = -1;
   // coarse_bctr is the 12 MSB of the smallest tdc
-  for (int isl = 0; isl < 2; isl++) {
-    if (isl * 2 != sl) continue;
+//  for (int isl = 0; isl < 2; isl++) {
+  for (int isl = 0; isl < 3; isl++) {
+//    if (isl * 2 != sl) continue;
+    if (isl  != sl) continue;
+    int myisl = isl<2 ? 0 : 1;
     for (size_t i = 0; i < NUM_LAYERS; i++) {
-      if (fit_common_in.hits_valid[NUM_LAYERS * isl + i] == 0) continue;
-      else if (fit_common_in.hits[NUM_LAYERS * isl + i].ti < smallest_time)
-        smallest_time = fit_common_in.hits[NUM_LAYERS * isl + i].ti;
+      if (fit_common_in.hits_valid[NUM_LAYERS * myisl + i] == 0) continue;
+      else if (fit_common_in.hits[NUM_LAYERS * myisl + i].ti < smallest_time)
+        smallest_time = fit_common_in.hits[NUM_LAYERS * myisl + i].ti;
     }
-    if (fit_common_in.hits_valid[NUM_LAYERS * isl + 0] == 1)
-      tmp_coarse_wirepos_1 = fit_common_in.hits[NUM_LAYERS * isl + 0].wp;
+    if (fit_common_in.hits_valid[NUM_LAYERS * myisl + 0] == 1)
+      tmp_coarse_wirepos_1 = fit_common_in.hits[NUM_LAYERS * myisl + 0].wp;
     else                                                     
-      tmp_coarse_wirepos_1 = fit_common_in.hits[NUM_LAYERS * isl + 1].wp;
-    if (fit_common_in.hits_valid[NUM_LAYERS * isl + 3] == 1)
-      tmp_coarse_wirepos_3 = fit_common_in.hits[NUM_LAYERS * isl + 3].wp;
+      tmp_coarse_wirepos_1 = fit_common_in.hits[NUM_LAYERS * myisl + 1].wp;
+    if (fit_common_in.hits_valid[NUM_LAYERS * myisl + 3] == 1)
+      tmp_coarse_wirepos_3 = fit_common_in.hits[NUM_LAYERS * myisl + 3].wp;
     else
-      tmp_coarse_wirepos_3 = fit_common_in.hits[NUM_LAYERS * isl + 2].wp;
+      tmp_coarse_wirepos_3 = fit_common_in.hits[NUM_LAYERS * myisl + 2].wp;
 
     tmp_coarse_wirepos_1 = tmp_coarse_wirepos_1 >> WIREPOS_NORM_LSB_IGNORED;
     tmp_coarse_wirepos_3 = tmp_coarse_wirepos_3 >> WIREPOS_NORM_LSB_IGNORED;
@@ -194,52 +215,68 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
     fit_common_in.lateralities.clear();
 
     auto rom_addr = get_rom_addr(inMPath, lat_comb);
-    // std::cout << rom_addr << std::endl;
+     //std::cout << rom_addr << std::endl;
     coeffs_t coeffs;
-    if (sl == 0) {
+/*    if (sl == 0) {
       coeffs = RomDataConvert(lut_sl1[rom_addr], COEFF_WIDTH_SL_T0, COEFF_WIDTH_SL_POSITION, COEFF_WIDTH_SL_SLOPE, 2 * sl, 2 * sl + 3);
+//    } else if (sl == 2) {
     } else {
       coeffs = RomDataConvert(lut_sl3[rom_addr], COEFF_WIDTH_SL_T0, COEFF_WIDTH_SL_POSITION, COEFF_WIDTH_SL_SLOPE, 2 * sl, 2 * sl + 3);
+    }*/
+//    if (sl == 0 || sl == 1) {
+//      coeffs = RomDataConvert(lut_sl1[rom_addr], COEFF_WIDTH_SL_T0, COEFF_WIDTH_SL_POSITION, COEFF_WIDTH_SL_SLOPE, 0, 3);
+    if (sl == 0){
+      coeffs = RomDataConvert(lut_sl1[rom_addr], COEFF_WIDTH_SL_T0, COEFF_WIDTH_SL_POSITION, COEFF_WIDTH_SL_SLOPE, 0, 3);
+    } else if (sl == 1){
+      coeffs = RomDataConvert(lut_sl2[rom_addr], COEFF_WIDTH_SL_T0, COEFF_WIDTH_SL2_POSITION, COEFF_WIDTH_SL_SLOPE, 0, 3);
+    } else {
+      coeffs = RomDataConvert(lut_sl3[rom_addr], COEFF_WIDTH_SL_T0, COEFF_WIDTH_SL_POSITION, COEFF_WIDTH_SL_SLOPE, 4, 7);
     }
-
     // Filling lateralities
-    for (int isl = 0; isl < 2; isl++) {
+    int minISL = 1;
+    int maxISL = 3;
+    if(sl<1) {minISL=0; maxISL=2;}
+
+//    for (int isl = 0; isl < 2; isl++) {
+    for (int isl = minISL; isl < maxISL; isl++) {
       for (size_t i = 0; i < NUM_LAYERS; i++) {
-        if (isl * 2 == sl) {
+//        if (isl * 2 == sl) {
+        if (isl == sl) {
           fit_common_in.lateralities.push_back(lat_comb[i]);
         }
         else fit_common_in.lateralities.push_back(-1);
       }
     }
     fit_common_in.coeffs = coeffs;
-    // std::cout << "Starting to fit" << std::endl;
-    // std::cout << inMPath->primitive(0)->channelId() << " ";
-    // std::cout << inMPath->primitive(1)->channelId() << " ";
-    // std::cout << inMPath->primitive(2)->channelId() << " ";
-    // std::cout << inMPath->primitive(3)->channelId() << " ";
-    // std::cout << inMPath->primitive(0)->tdcTimeStamp() << " ";
-    // std::cout << inMPath->primitive(1)->tdcTimeStamp() << " ";
-    // std::cout << inMPath->primitive(2)->tdcTimeStamp() << " ";
-    // std::cout << inMPath->primitive(3)->tdcTimeStamp() << " ";
-    // std::cout << lat_comb[0] << " ";
-    // std::cout << lat_comb[1] << " ";
-    // std::cout << lat_comb[2] << " ";
-    // std::cout << lat_comb[3] << " ";
-    // std::cout << std::endl;
+     /*if(sl==1 ){
+     std::cout << "Starting to fit SL" << sl+1<<" rom_addr: "<<rom_addr<<std::endl;
+     std::cout << inMPath->primitive(0)->channelId() << " ";
+     std::cout << inMPath->primitive(1)->channelId() << " ";
+     std::cout << inMPath->primitive(2)->channelId() << " ";
+     std::cout << inMPath->primitive(3)->channelId() << " ";
+     std::cout << inMPath->primitive(0)->tdcTimeStamp() << " ";
+     std::cout << inMPath->primitive(1)->tdcTimeStamp() << " ";
+     std::cout << inMPath->primitive(2)->tdcTimeStamp() << " ";
+     std::cout << inMPath->primitive(3)->tdcTimeStamp() << " ";
+     std::cout << lat_comb[0] << " ";
+     std::cout << lat_comb[1] << " ";
+     std::cout << lat_comb[2] << " ";
+     std::cout << lat_comb[3] << " ";
+     std::cout << std::endl;}*/
 
     auto fit_common_out = fit(fit_common_in,
                               XI_SL_WIDTH,
                               COEFF_WIDTH_SL_T0,
-                              COEFF_WIDTH_SL_POSITION,
+                              sl==1 ? COEFF_WIDTH_SL2_POSITION : COEFF_WIDTH_SL_POSITION,
                               COEFF_WIDTH_SL_SLOPE,
                               PRECISSION_SL_T0,
                               PRECISSION_SL_POSITION,
                               PRECISSION_SL_SLOPE,
                               PROD_RESIZE_SL_T0,
-                              PROD_RESIZE_SL_POSITION,
+                              sl==1 ? PROD_RESIZE_SL2_POSITION : PROD_RESIZE_SL_POSITION,
                               PROD_RESIZE_SL_SLOPE,
-                              max_drift_tdc);
-    // std::cout << "Valid fit: " << fit_common_out.valid_fit << std::endl;
+                              max_drift_tdc, sl+1);
+    //if(sl==1) std::cout << "Valid fit: " << fit_common_out.valid_fit << " sl: "<< sl+1 <<std::endl <<endl;
     if (fit_common_out.valid_fit == 1) {
       float t0_f = ((float) fit_common_out.t0) * (float) LHC_CLK_FREQ / (float) TIME_TO_TDC_COUNTS;
 
@@ -247,7 +284,7 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
 
       float slope_f = -fit_common_out.slope * ((float) CELL_SEMILENGTH / max_drift_tdc) * (1) / (CELL_SEMIHEIGHT * 16.);
       // std::cout << std::abs(slope_f) << " " << tanPhiTh_ << std::endl;
-      if (std::abs(slope_f) > tanPhiTh_)
+      if (sl!=1 && std::abs(slope_f) > tanPhiTh_)
         continue;
 
       // std::cout << "SLOPE: " << fit_common_out.slope  << " " << SLOPE_LSB << " " << slope_f << std::endl;
@@ -259,11 +296,15 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
       DTWireId wireId(MuonPathSLId, 2, 1);
       float pos_ch_f = (float) (fit_common_out.position) * ((float) CELL_SEMILENGTH / (float) max_drift_tdc) / 10;
       pos_ch_f += (SL1_CELLS_OFFSET * CELL_LENGTH) / 10.;
-      pos_ch_f += shiftinfo_[wireIdSL1.rawId()];
+      if(sl != 1) pos_ch_f += shiftinfo_[wireIdSL1.rawId()];
+      else if (sl==1) pos_ch_f += shiftthetainfo_[wireIdSL2.rawId()];
+
       // if (sl == 2)
         // pos_ch_f -= sl_shift_cm;
       float pos_sl_f = pos_ch_f - (sl - 1) * slope_f * VERT_PHI1_PHI3 / 2;
       float chi2_f = fit_common_out.chi2 * std::pow(((float) CELL_SEMILENGTH / (float) max_drift_tdc), 2) / 100;
+      //if (chi2_f > (chi2Th_))
+      //   return;
 
       // obtention of global coordinates using luts
       // std::cout << "SL" << sl << " " << shiftinfo_[wireId.rawId()] << std::endl;
@@ -296,7 +337,8 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
       float phi_cmssw = jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1);
       float psi = atan(slope_f);
       float phiB_cmssw = hasPosRF(ChId.wheel(), ChId.sector()) ? psi - phi_cmssw : -psi - phi_cmssw;
-      if (sl < 2)
+//      if (sl < 2)
+      if (sl == 0)
         metaPrimitives.emplace_back(metaPrimitive({MuonPathSLId.rawId(),
                                                  t0_f,
                                                  (double) (fit_common_out.position),
@@ -332,7 +374,8 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
                                                  -1,
                                                  -1,
                                                  -1}));
-      else
+//      else
+      else if(sl ==2)
         metaPrimitives.emplace_back(metaPrimitive({MuonPathSLId.rawId(),
                                                  t0_f,
                                                  (double) (fit_common_out.position),
@@ -368,6 +411,64 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
                                                  inMPath->primitive(3)->tdcTimeStamp(),
                                                  lat_comb[3],
                                                  -1}));
+      else if(sl==1){
+      //cout<<"A theta TP!!!"<<endl;
+       // fw-like calculation
+       DTLayerId SL2_layer2Id(MuonPathSLId, 2);     
+       double z_shift = shiftthetainfo_[SL2_layer2Id.rawId()];
+       double jm_y = hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? z_shift - pos : z_shift + pos;
+       phi = jm_y;
+       phiB = slope_f;
+
+       // cmssw-like calculation
+       LocalPoint wire1_in_layer(dtGeo_->layer(SL2_layer2Id)->specificTopology().wirePosition(1), 0, -0.65);
+       GlobalPoint wire1_in_global = dtGeo_->layer(SL2_layer2Id)->toGlobal(wire1_in_layer);
+       LocalPoint wire1_in_sl = dtGeo_->superLayer(MuonPathSLId)->toLocal(wire1_in_global);
+       double x_shift = wire1_in_sl.x();
+       jm_y = (dtGeo_->superLayer(MuonPathSLId)
+                ->toGlobal(LocalPoint(double(pos) / (10 * pow(2, INCREASED_RES_POS)) + x_shift, 0., 0)))
+               .z();
+       phi_cmssw = jm_y;
+       phiB_cmssw = slope_f;      
+               metaPrimitives.emplace_back(metaPrimitive({MuonPathSLId.rawId(),
+                                                 t0_f,
+                                                 (double) (fit_common_out.position),
+                                                 (double) fit_common_out.slope,
+                                                 phi,
+                                                 phiB,
+                                                 phi_cmssw,
+                                                 phiB_cmssw,
+                                                 chi2_f,
+                                                 quality,
+                                                 inMPath->primitive(0)->channelId(),
+                                                 inMPath->primitive(0)->tdcTimeStamp(),
+                                                 lat_comb[0],
+                                                 inMPath->primitive(1)->channelId(),
+                                                 inMPath->primitive(1)->tdcTimeStamp(),
+                                                 lat_comb[1],
+                                                 inMPath->primitive(2)->channelId(),
+                                                 inMPath->primitive(2)->tdcTimeStamp(),
+                                                 lat_comb[2],
+                                                 inMPath->primitive(3)->channelId(),
+                                                 inMPath->primitive(3)->tdcTimeStamp(),
+                                                 lat_comb[3],
+                                                 -1,
+                                                 -1,
+                                                 -1,
+                                                 -1,
+                                                 -1,
+                                                 -1,
+                                                 -1,
+                                                 -1,
+                                                 -1,
+                                                 -1,
+                                                 -1,
+                                                 -1,
+                                                 -1}));
+       //cout<< chi2_f << " "<< quality <<" ";
+       //for (int i = 0; i<4; i++)       cout<<inMPath->primitive(i)->channelId() <<" " << inMPath->primitive(i)->tdcTimeStamp() << " "<< lat_comb[i]<< " ";       
+       //cout<<endl; 
+     }
     }
   }
   return;
@@ -386,6 +487,19 @@ void MuonPathSLFitter::fillLuts() {
     }
     std::reverse(myNumbers.begin(), myNumbers.end());
     lut_sl1.push_back(myNumbers);
+  }
+
+  std::ifstream ifinsl2(sl2_filename_.fullPath());
+  while (ifinsl2.good()) {
+    ifinsl2 >> line;
+
+    std::vector<int> myNumbers;
+    for (size_t i = 0; i < line.size(); i++) {
+      // This converts the char into an int and pushes it into vec
+       myNumbers.push_back(line[i] - '0');  // The digits will be in the same order as before
+    }
+    std::reverse(myNumbers.begin(), myNumbers.end());
+    lut_sl2.push_back(myNumbers);
   }
 
   std::ifstream ifinsl3(sl3_filename_.fullPath());

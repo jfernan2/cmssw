@@ -106,6 +106,9 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
   auto sl_shift_cm = shiftinfo_[wireIdSL1.rawId()] - shiftinfo_[wireIdSL3.rawId()];
   // std::cout << sl_shift_cm << std::endl;
   bool isSL1 = (mp.rawId == sl1Id.rawId());
+  bool isSL3 = (mp.rawId == sl3Id.rawId());
+  if (!isSL1 && !isSL3) outMetaPrimitives.emplace_back(mp);
+  else{
   int best_tdc = -1;
   int next_tdc = -1;
   int best_wire = -1;
@@ -137,7 +140,7 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
     bool hitFromSL1 = (dtSLId.rawId() == sl1Id.rawId());
     bool hitFromSL3 = (dtSLId.rawId() == sl3Id.rawId());
     if (!(hitFromSL1 || hitFromSL3)) // checking hits are from one of the other SL of the same chamber
-      continue;
+          continue;
     double minx = 10 * minx_match_2digis_ * ((double) max_drift_tdc / (double) CELL_SEMILENGTH);
     double min2x = 10 * minx_match_2digis_ * ((double) max_drift_tdc / (double) CELL_SEMILENGTH);
     if (isSL1 != hitFromSL1) { // checking hits have the opposite SL than the TP
@@ -303,6 +306,7 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
       mp.lat8,
       -1}));
   }
+ } //SL2
 }
 
 //------------------------------------------------------------------

@@ -30,10 +30,12 @@ void MPSLFilter::run(edm::Event &iEvent,
     DTChamberId ChId(dumSlId.wheel(), dumSlId.station(), dumSlId.sector());
     max_drift_tdc = maxdriftinfo_[dumSlId.wheel() + 2][dumSlId.station() - 1][dumSlId.sector() - 1];
     DTSuperLayerId sl1Id(ChId.rawId(), 1);
+    DTSuperLayerId sl2Id(ChId.rawId(), 2);
     DTSuperLayerId sl3Id(ChId.rawId(), 3);
 
     std::vector<metaPrimitive> SL1metaPrimitives;
     // std::map<int, std::vector<metaPrimitive>> SL1metaPrimitivesPerBX;
+    std::vector<metaPrimitive> SL2metaPrimitives;
     std::vector<metaPrimitive> SL3metaPrimitives;
     // std::map<int, std::vector<metaPrimitive>> SL3metaPrimitivesPerBX;
     for (const auto &metaprimitiveIt : inMPaths) {
@@ -44,14 +46,19 @@ void MPSLFilter::run(edm::Event &iEvent,
       else if (metaprimitiveIt.rawId == sl3Id.rawId())
         // SL3metaPrimitivesPerBX[BX].push_back(metaprimitiveIt);
         SL3metaPrimitives.push_back(metaprimitiveIt);
+      else if (metaprimitiveIt.rawId == sl2Id.rawId())
+        SL2metaPrimitives.push_back(metaprimitiveIt);
     }
 
-    // auto filteredSL1MPs = filter(SL1metaPrimitivesPerBX);
+    //auto filteredSL1MPs = filter(SL1metaPrimitivesPerBX);
     auto filteredSL1MPs = filter(SL1metaPrimitives);
+    auto filteredSL2MPs = filter(SL2metaPrimitives);
     // auto filteredSL3MPs = filter(SL3metaPrimitivesPerBX);
     auto filteredSL3MPs = filter(SL3metaPrimitives);
 
     for (auto & mp: filteredSL1MPs)
+      outMPaths.push_back(mp);
+    for (auto & mp: filteredSL2MPs)
       outMPaths.push_back(mp);
     for (auto & mp: filteredSL3MPs)
       outMPaths.push_back(mp);
@@ -75,7 +82,7 @@ std::vector<metaPrimitive> MPSLFilter::filter(std::vector<metaPrimitive> mps) {
     // for (auto &mp : elem.second) {
       // is this mp getting killed?
     auto dead = isDead(mp, mp_valid_per_bx);
-    // std::cout << mp.quality << " " << mp.t0 << " " << dead << std::endl;
+     //std::cout << mp.quality << "<-q t0-> " << mp.t0 << " dead: " << dead << std::endl;
     if (isDead(mp, mp_valid_per_bx)) continue;
     // if not, let's kill other mps
     // auto index = killTps(mp, elem.first, mp_valid_per_bx);
@@ -143,7 +150,7 @@ bool MPSLFilter::isDead(cmsdt::metaPrimitive mp, std::map<int, valid_tp_arr_t> t
 int MPSLFilter::smaller_chi2(cmsdt::metaPrimitive mp, cmsdt::metaPrimitive mp2) {
   auto chi2_1 = get_chi2(mp);
   auto chi2_2 = get_chi2(mp2);
-  // std::cout << mp.chi2 << " " << mp2.chi2 << " " << chi2_1 << " " << chi2_2 << std::endl;
+  //std::cout << mp.chi2 << " " << mp2.chi2 << " " << chi2_1 << " " << chi2_2 << std::endl;
   if (chi2_1 < chi2_2) return 0;
   return 1;
 }
@@ -196,7 +203,7 @@ int MPSLFilter::killTps(cmsdt::metaPrimitive mp, int bx, std::map<int, valid_tp_
       if (elem.second[i].valid == 1) {
         int isMatched = match(mp, elem.second[i].mp);
         if (isMatched == 2 || isMatched == 6) {
-          // std::cout << "Killer mp: " << mp.t0 << " Dead mp: " << elem.second[i].mp.t0 << std::endl;
+           //std::cout << "Killer mp: " << mp.t0 << " Dead mp: " << elem.second[i].mp.t0 << std::endl;
           elem.second[i].valid = false;
           if (elem.first == bx && index_to_kill == -1) index_to_kill = i;
         }
@@ -256,7 +263,7 @@ int MPSLFilter::share_hit(cmsdt::metaPrimitive mp, cmsdt::metaPrimitive mp2) {
       max_tdc_mp2 = tdc_mp2[i];
   }
 
-  // std::cout << mp.t0 / LHC_CLK_FREQ << " " << max_tdc_mp2 / LHC_CLK_FREQ << " " << mp2.t0 / LHC_CLK_FREQ << " " << max_tdc_mp / LHC_CLK_FREQ << std::endl;
+   //std::cout << mp.t0 / LHC_CLK_FREQ << " t0 " << max_tdc_mp2 / LHC_CLK_FREQ << " t0 " << mp2.t0 / LHC_CLK_FREQ << " " << max_tdc_mp / LHC_CLK_FREQ << std::endl;
 
   if (mp.t0 / LHC_CLK_FREQ + SLFILT_MAX_SEG1T0_TO_SEG2ARRIVAL < max_tdc_mp2 / LHC_CLK_FREQ
       || mp2.t0 / LHC_CLK_FREQ + SLFILT_MAX_SEG1T0_TO_SEG2ARRIVAL < max_tdc_mp / LHC_CLK_FREQ)

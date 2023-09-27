@@ -415,7 +415,7 @@ void MuonPathCorFitter::analyze(mp_group mp, std::vector<cmsdt::metaPrimitive> &
                             PROD_RESIZE_COR_T0,
                             PROD_RESIZE_COR_POSITION,
                             PROD_RESIZE_COR_SLOPE,
-                            max_drift_tdc);
+                            max_drift_tdc,0);
                             
   // std::cout << "Valid fit: " << fit_common_out.valid_fit << std::endl;
   if (fit_common_out.valid_fit == 1) {

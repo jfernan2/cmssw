@@ -93,7 +93,7 @@ public:
                        int PROD_RESIZE_T0,
                        int PROD_RESIZE_POSITION,
                        int PROD_RESIZE_SLOPE,
-                       int MAX_DRIFT_TDC);
+                       int MAX_DRIFT_TDC, int sl);
 
   double tanPhiTh_;
   const bool debug_;

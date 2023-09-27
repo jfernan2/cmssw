@@ -28,11 +28,12 @@ void MPCorFilter::run(edm::Event &iEvent,
 
   // std::map<int, std::vector<metaPrimitive>> SL1metaPrimitivesPerBX;
   std::vector<metaPrimitive> SL1metaPrimitives;
+  std::vector<metaPrimitive> SL2metaPrimitives;
   // std::map<int, std::vector<metaPrimitive>> SL3metaPrimitivesPerBX;
   std::vector<metaPrimitive> SL3metaPrimitives;
   // std::map<int, std::vector<metaPrimitive>> CormetaPrimitivesPerBX;
   std::vector<metaPrimitive> CormetaPrimitives;
-  uint32_t sl1Id_rawid = -1, sl3Id_rawid = -1;
+  uint32_t sl1Id_rawid = -1, sl2Id_rawid = -1, sl3Id_rawid = -1;
   if (inSLMPaths.size() > 0) {
     int dum_sl_rawid = inSLMPaths[0].rawId;
     DTSuperLayerId dumSlId(dum_sl_rawid);
@@ -41,6 +42,8 @@ void MPCorFilter::run(edm::Event &iEvent,
     DTChamberId ChId(dumSlId.wheel(), dumSlId.station(), dumSlId.sector());
     DTSuperLayerId sl1Id(ChId.rawId(), 1);
     sl1Id_rawid = sl1Id.rawId();
+    DTSuperLayerId sl2Id(ChId.rawId(), 2);
+    sl2Id_rawid = sl2Id.rawId();
     DTSuperLayerId sl3Id(ChId.rawId(), 3);
     sl3Id_rawid = sl3Id.rawId();
 
@@ -53,6 +56,8 @@ void MPCorFilter::run(edm::Event &iEvent,
       else if (metaprimitiveIt.rawId == sl3Id_rawid)
         SL3metaPrimitives.push_back(metaprimitiveIt);
         // SL3metaPrimitivesPerBX[BX].push_back(metaprimitiveIt);
+      else if (metaprimitiveIt.rawId == sl2Id_rawid)
+        SL2metaPrimitives.push_back(metaprimitiveIt);
     }
   }
   // for (const auto &metaprimitiveIt : inCorMPaths) {
@@ -63,7 +68,7 @@ void MPCorFilter::run(edm::Event &iEvent,
   // }
 
   // auto filteredMPs = filter(SL1metaPrimitivesPerBX, SL3metaPrimitivesPerBX, CormetaPrimitivesPerBX);
-  auto filteredMPs = filter(SL1metaPrimitives, SL3metaPrimitives, inCorMPaths);
+  auto filteredMPs = filter(SL1metaPrimitives, SL2metaPrimitives, SL3metaPrimitives, inCorMPaths);
   for (auto & mp: filteredMPs)
     outMPaths.push_back(mp);
 }
@@ -76,12 +81,13 @@ void MPCorFilter::finish(){};
 std::vector<metaPrimitive> MPCorFilter::filter(
     std::vector<metaPrimitive> SL1mps,
     // std::map<int, std::vector<metaPrimitive>> SL1mpsPerBX,
+    std::vector<metaPrimitive> SL2mps,
     std::vector<metaPrimitive> SL3mps,
     // std::map<int, std::vector<metaPrimitive>> SL3mpsPerBX,
     std::vector<metaPrimitive> Cormps)
     // std::map<int, std::vector<metaPrimitive>> CormpsPerBX)
 {
-  // std::cout << "SL1 " << SL1mps.size() << " SL3 " << SL3mps.size() << std::endl;
+  //std::cout << "SL1 " << SL1mps.size() << " SL2 " << SL2mps.size() << " SL3 " << SL3mps.size() << std::endl;
   std::map<int, valid_cor_tp_arr_t> mp_valid_per_bx;
   // for (auto &elem: SL1mpsPerBX) {
   std::map<int, int> imp_per_bx_sl1;
@@ -157,7 +163,7 @@ std::vector<metaPrimitive> MPCorFilter::filter(
       }
     }
   }
-
+  for (auto &mp: SL2mps) outTPs.push_back(mp);
   return outTPs;
 }
 

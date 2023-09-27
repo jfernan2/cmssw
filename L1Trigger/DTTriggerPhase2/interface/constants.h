@@ -262,6 +262,7 @@ namespace cmsdt {
 
   constexpr int COEFF_WIDTH_SL_T0 = 15;
   constexpr int COEFF_WIDTH_SL_POSITION = 18;
+  constexpr int COEFF_WIDTH_SL2_POSITION = 15;
   constexpr int COEFF_WIDTH_SL_SLOPE = 18;
 
   constexpr int PRECISSION_SL_T0 = 13;
@@ -270,6 +271,7 @@ namespace cmsdt {
 
   constexpr int PROD_RESIZE_SL_T0 = 28;
   constexpr int PROD_RESIZE_SL_POSITION = 30;
+  constexpr int PROD_RESIZE_SL2_POSITION = 27;
   constexpr int PROD_RESIZE_SL_SLOPE = 30;
 
   constexpr int XI_COR_WIDTH = 14;

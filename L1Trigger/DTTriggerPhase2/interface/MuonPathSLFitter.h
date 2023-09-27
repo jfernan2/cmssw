@@ -50,6 +50,7 @@ public:
 
   // luts
   edm::FileInPath sl1_filename_;
+  edm::FileInPath sl2_filename_;
   edm::FileInPath sl3_filename_;
 
 private:
@@ -62,6 +63,7 @@ private:
 
   // double chi2Th_;
   std::vector<std::vector<int>> lut_sl1;
+  std::vector<std::vector<int>> lut_sl2;
   std::vector<std::vector<int>> lut_sl3;
 };
 

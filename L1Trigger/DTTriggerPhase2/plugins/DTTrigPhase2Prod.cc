@@ -1327,6 +1327,7 @@ void DTTrigPhase2Prod::fillDescriptions(edm::ConfigurationDescriptions& descript
   desc.add<edm::FileInPath>("ttrig_filename", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/wire_rawId_ttrig.txt"));
   desc.add<edm::FileInPath>("z_filename", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/wire_rawId_z.txt"));
   desc.add<edm::FileInPath>("lut_sl1", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/fitterlut_sl1.dat"));
+  desc.add<edm::FileInPath>("lut_sl2", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/fitterlut_slx.dat"));
   desc.add<edm::FileInPath>("lut_sl3", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/fitterlut_sl3.dat"));
   desc.add<edm::FileInPath>("lut_2sl", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/fitterlut_2sl.dat"));
   desc.add<edm::FileInPath>("shift_filename", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/wire_rawId_x.txt"));

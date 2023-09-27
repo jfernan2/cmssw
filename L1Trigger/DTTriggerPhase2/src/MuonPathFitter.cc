@@ -71,7 +71,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
                                      int PROD_RESIZE_T0,
                                      int PROD_RESIZE_POSITION,
                                      int PROD_RESIZE_SLOPE,
-                                     int MAX_DRIFT_TDC) {
+                                     int MAX_DRIFT_TDC, int sl) {
 
   const int PARTIALS_PRECISSION = 4;
   // const int NORM_TIME_WIDTH = 10;
@@ -338,6 +338,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   // of the residual for each of the layers.
   // std::cout << slope_prec << " " << SEMICHAMBER_H << " " << (slope_prec * SEMICHAMBER_H) << " " << ((slope_prec * SEMICHAMBER_H)>> SEMICHAMBER_RES_SHR) << std::endl;
   int slope_x_halfchamb = (((long int)slope_prec * (long int) SEMICHAMBER_H)) >> SEMICHAMBER_RES_SHR;
+  if(sl==2) slope_x_halfchamb = 0 ;
   int slope_x_3semicells = (slope_prec * 3) >> LYRANDAHALF_RES_SHR;
   int slope_x_1semicell = (slope_prec * 1) >> LYRANDAHALF_RES_SHR;
 
@@ -467,7 +468,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
 
   // Impose the thresholds
   // if (chi2 > 16 * 16)
-  // std::cout << "chi2 " << chi2 << " chi2/16 " << chi2 / 16 << " th f " << chi2Th_ << " th int " << round(chi2Th_ * (std::pow((float) MAX_DRIFT_TDC / ((float) CELL_SEMILENGTH / 10.), 2)) / 16.) << std::endl;
+  //if(sl==2) std::cout << "chi2 " << chi2 << " chi2/16 " << chi2 / 16 << " th f " << chi2Th_ << " th int " << round(chi2Th_ * (std::pow((float) MAX_DRIFT_TDC / ((float) CELL_SEMILENGTH / 10.), 2)) / 16.) << std::endl;
 
   if (chi2 / 16 >= (int) round(chi2Th_ * (std::pow((float) MAX_DRIFT_TDC / ((float) CELL_SEMILENGTH / 10.), 2)) / 16.))
     return fit_common_out_t();
