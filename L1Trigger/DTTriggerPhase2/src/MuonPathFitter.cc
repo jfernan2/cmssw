@@ -74,7 +74,6 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
                                      int MAX_DRIFT_TDC) {
 
   const int PARTIALS_PRECISSION = 4;
-  // const int NORM_TIME_WIDTH = 10;
   const int PARTIALS_SHR_T0 = PRECISSION_T0 - PARTIALS_PRECISSION;
   const int PARTIALS_SHR_POSITION = PRECISSION_POSITION - PARTIALS_PRECISSION;
   const int PARTIALS_SHR_SLOPE = PRECISSION_SLOPE - PARTIALS_PRECISSION;
@@ -87,17 +86,12 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   const int WIDTH_POSITION_PREC = WIDTH_SLOPE_PREC + 1;
 
   const int SEMICHAMBER_H_PRECISSION = 13 + PARTIALS_PRECISSION;
-  // const int SEMICHAMBER_H_WIDTH = 2 + SEMICHAMBER_H_PRECISSION;
   const float SEMICHAMBER_H_REAL = ((235. / 2.) / (16. * 6.5)) * std::pow(2, SEMICHAMBER_H_PRECISSION);
   const int SEMICHAMBER_H = (int) SEMICHAMBER_H_REAL; // signed(SEMICHAMBER_H_WIDTH-1 downto 0)
 
   const int SEMICHAMBER_RES_SHR = SEMICHAMBER_H_PRECISSION;
-  // const int SEMICHAMBER_RES_WIDTH = WIDTH_POSITION_PREC;
-  // const int SEMICHAMBER_RES_RESIZE = SEMICHAMBER_RES_WIDTH + SEMICHAMBER_RES_SHR;
 
   const int LYRANDAHALF_RES_SHR = 4;
-  // const int LYRANDAHALF_RES_WIDTH = WIDTH_SLOPE_PREC - 2;
-  // const int LYRANDAHALF_RES_RESIZE = LYRANDAHALF_RES_WIDTH + LYRANDAHALF_RES_SHR;
 
   const int CHI2_CALC_RES_BITS = 7;
 
@@ -106,61 +100,37 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   *******************************/
   std::vector<int> normalized_times;
   std::vector<int> normalized_wirepos;
-  // std::cout << "coarse_bctr " << (fit_common_in.coarse_bctr) << std::endl;
 
   for (int i = 0; i < 2 * NUM_LAYERS; i++) {
-    // std::cout << i << std::endl;
     // normalized times
     // this should be resized to an unsigned of 10 bits (max drift time ~508 TDC counts, using 9+1 to include tolerance)
     // leaving it as an integer for now
     // we are obtaining the difference as the difference in BX + the LS bits from the hit time
 
     if (fit_common_in.hits_valid[i] == 1) {
-      // std::cout << fit_common_in.hits[i].ti << " " << fit_common_in.coarse_bctr << std::endl;
       int dif_bx = (fit_common_in.hits[i].ti >> (WIDTH_FULL_TIME - WIDTH_COARSED_TIME))
         - fit_common_in.coarse_bctr;
 
       int tmp_norm_time = (dif_bx << (WIDTH_FULL_TIME - WIDTH_COARSED_TIME)) +
         (fit_common_in.hits[i].ti % (int) std::pow(2, WIDTH_FULL_TIME - WIDTH_COARSED_TIME));
-      // std::cout << dif_bx << " " << tmp_norm_time << std::endl;
       // resize test
       // this has implications in the FW (reducing number of bits).
       // we keep here the int as it is, but we do the same check done in the fw
       std::vector<int> tmp_dif_bx_vector;
       vhdl_int_to_unsigned(dif_bx, tmp_dif_bx_vector);
-      // for (auto & elem: tmp_dif_bx_vector) {
-        // std::cout << elem;
-      // }
-      // std::cout << std::endl;
       vhdl_resize_unsigned(tmp_dif_bx_vector, 12);
-      // for (auto & elem: tmp_dif_bx_vector) {
-        // std::cout << elem;
-      // }
-      // std::cout << std::endl;
       if (!vhdl_resize_unsigned_ok(tmp_dif_bx_vector, WIDTH_DIFBX))
         return fit_common_out_t();
-      // std::cout << "After resizing tmp_dif_bx_vector" << std::endl;
 
       normalized_times.push_back(tmp_norm_time);
-      // std::cout << "normalized_times[" << i << "]=" << normalized_times[i] << std::endl;
       int tmp_wirepos = fit_common_in.hits[i].wp -
         (fit_common_in.coarse_wirepos << WIREPOS_NORM_LSB_IGNORED);
-      // std::cout << fit_common_in.hits[i].wp << " " << fit_common_in.coarse_wirepos << " " << tmp_wirepos << std::endl;
       // resize test
       std::vector<int> tmp_wirepos_vector;
       vhdl_int_to_signed(tmp_wirepos, tmp_wirepos_vector);
-      // for (auto & elem: tmp_wirepos_vector) {
-        // std::cout << elem;
-      // }
-      // std::cout << std::endl;
       vhdl_resize_signed(tmp_wirepos_vector, WIREPOS_WIDTH);
-      // for (auto & elem: tmp_wirepos_vector) {
-        // std::cout << elem;
-      // }
-      // std::cout << std::endl;
       if (!vhdl_resize_signed_ok(tmp_wirepos_vector, XI_WIDTH))
         return fit_common_out_t();
-      // std::cout << "After resizing tmp_wirepos_vector" << std::endl;
 
       normalized_wirepos.push_back(tmp_wirepos);
     } else { // dummy hit
@@ -169,7 +139,6 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
     }
   }
 
-  // std::cout << "Clock cycle 1 finished" << std::endl;
 
   /*******************************
             clock cycle 2
@@ -179,12 +148,10 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   // min and max times are computed throught several clk cycles in the fw,
   // here we compute it at once
   int min_hit_time = 999999, max_hit_time = 0;
-  // std::cout << "Normalized times: " << std::endl;
   for (int i = 0; i < 2 * NUM_LAYERS; i++) {
     if (fit_common_in.hits_valid[i] == 1) {
       // calculate xi array
       auto tmp_xi_incr = normalized_wirepos[i];
-      // std::cout << fit_common_in.lateralities[i] << " ";
       tmp_xi_incr += (-1 + 2 * fit_common_in.lateralities[i]) * normalized_times[i];
 
       // resize test
@@ -194,8 +161,6 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
       if (!vhdl_resize_signed_ok(tmp_xi_incr_vector, XI_WIDTH))
         return fit_common_out_t();
       xi_arr.push_back(tmp_xi_incr);
-      // std::cout << "xi_arr[" << i << "]=" << xi_arr[i] << std::endl;
-      // std::cout << "normalized_times[" << i << "]=" << normalized_times[i] << std::endl;
 
       // calculate min and max times
       if (normalized_times[i] < min_hit_time) {
@@ -208,9 +173,7 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
       xi_arr.push_back(-1);
     }
   }
-  // std::cout << std::endl;
 
-  // std::cout << "Clock cycle 2 finished" << std::endl;
   /*******************************
             clock cycle 3
   *******************************/
@@ -224,28 +187,12 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
       products_position.push_back( -1);
       products_slope.push_back(    -1);
     } else {
-      // std::cout << "time coeff ";
-      // for (auto & elem: fit_common_in.coeffs.t0       [i])
-        // std::cout << elem;
-      // std::cout << std::endl;
-      // std::cout << "pos coeff ";
-      // for (auto & elem: fit_common_in.coeffs.position      [i])
-        // std::cout << elem;
-      // std::cout << std::endl;
-      // std::cout << "slope coeff ";
-      // for (auto & elem: fit_common_in.coeffs.slope    [i])
-        // std::cout << elem;
-      // std::cout << std::endl;
-
-      // std::cout << " " << vhdl_signed_to_int(fit_common_in.coeffs.t0       [i]) << std::endl;
       products_t0.push_back(       xi_arr[i] * vhdl_signed_to_int(fit_common_in.coeffs.t0       [i]));
-      // std::cout << "products_t0[" << i << "]=" << products_t0[i] << std::endl;
       products_position.push_back( xi_arr[i] * vhdl_signed_to_int(fit_common_in.coeffs.position [i]));
       products_slope.push_back(    xi_arr[i] * vhdl_signed_to_int(fit_common_in.coeffs.slope    [i]));
     }
   }
 
-  // std::cout << "Clock cycle 3 finished" << std::endl;
   /*******************************
             clock cycle 4
   *******************************/
@@ -261,43 +208,27 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
     }
   }
 
-  // std::cout << "Clock cycle 4 finished" << std::endl;
   /*******************************
             clock cycle 5
   *******************************/
   // Do resize tests for the computed sums with full precision
   std::vector<int> t0_prec_vector, position_prec_vector, slope_prec_vector;
-  // std::cout << "T0" << std::endl;
   vhdl_int_to_signed(t0_prec, t0_prec_vector);
-  // std::cout << "t0_prec " << t0_prec << std::endl;
-  // for (auto & elem: t0_prec_vector) {
-    // std::cout << elem;
-  // }
-  // std::cout << " ";
 
   vhdl_resize_signed(t0_prec_vector, PARTIALS_WIDTH_T0);
-  // for (auto & elem: t0_prec_vector) {
-    // std::cout << elem;
-  // }
-  // std::cout << std::endl;
   if (!vhdl_resize_signed_ok(t0_prec_vector, WIDTH_TO_PREC))
     return fit_common_out_t();
 
   vhdl_int_to_signed(position_prec, position_prec_vector);
   vhdl_resize_signed(position_prec_vector, PARTIALS_WIDTH_POSITION);
-  // std::cout << "Position" << std::endl;
-  // std::cout << position_prec << " ";
   if (!vhdl_resize_signed_ok(position_prec_vector, WIDTH_POSITION_PREC))
     return fit_common_out_t();
 
   vhdl_int_to_signed(slope_prec, slope_prec_vector);
   vhdl_resize_signed(slope_prec_vector, PARTIALS_WIDTH_SLOPE);
-  // std::cout << "Slope" << std::endl;
-  // std::cout << slope_prec << " ";
   if (!vhdl_resize_signed_ok(slope_prec_vector, WIDTH_SLOPE_PREC))
     return fit_common_out_t();
 
-  // std::cout << "Clock cycle 5 finished" << std::endl;
   /*******************************
             clock cycle 6
   *******************************/
@@ -305,13 +236,11 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   // in vhdl something more sofisticated is done, here we do a float division, round
   // and cast again to integer
 
-  // std::cout << t0_prec << " " << (t0_prec >> (PARTIALS_PRECISSION - 1)) << " " << ((t0_prec >> (PARTIALS_PRECISSION - 1)) + 1) << " " << (((t0_prec >> (PARTIALS_PRECISSION - 1)) + 1) >> 1) << std::endl;
 
   int norm_t0 = ((t0_prec >> (PARTIALS_PRECISSION - 1)) + 1) >> 1;
   int norm_position = ((position_prec >> (PARTIALS_PRECISSION - 1)) + 1) >> 1;
   int norm_slope = ((slope_prec >> (PARTIALS_PRECISSION - 1)) + 1) >> 1;
 
-  // std::cout << "normt0 " << norm_t0 << " norm_position " << norm_position << " norm_slope " << norm_slope << std::endl;
 
   // Calculate the (-xi) + pos (+/-) t0, which only is lacking the slope term to become the residuals
   std::vector<int> res_partials_arr;
@@ -323,27 +252,18 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
       // rounding
       tmp_position_prec += std::pow(2, PARTIALS_PRECISSION - 1);
 
-      // std::cout << "position_prec=" << position_prec;
-      // std::cout << " xi_arr[i]=" << xi_arr[i] * (int) std::pow(2, PARTIALS_PRECISSION);
-      // std::cout << " tmp_position_prec[" << i << "]=" << tmp_position_prec << std::endl;
-
       tmp_position_prec += (-1 + 2 * fit_common_in.lateralities[i]) * t0_prec;
       res_partials_arr.push_back(tmp_position_prec);
-    // std::cout "c6.res_partials_arr[" << i << "]=" << res_partials_arr[i] << std::endl;
     }
   }
 
   // calculate the { slope x semichamber, slope x 1.5 layers, slope x 0.5 layers }
   // these 3 values are later combined with different signs to get the slope part
   // of the residual for each of the layers.
-  // std::cout << slope_prec << " " << SEMICHAMBER_H << " " << (slope_prec * SEMICHAMBER_H) << " " << ((slope_prec * SEMICHAMBER_H)>> SEMICHAMBER_RES_SHR) << std::endl;
   int slope_x_halfchamb = (((long int)slope_prec * (long int) SEMICHAMBER_H)) >> SEMICHAMBER_RES_SHR;
   int slope_x_3semicells = (slope_prec * 3) >> LYRANDAHALF_RES_SHR;
   int slope_x_1semicell = (slope_prec * 1) >> LYRANDAHALF_RES_SHR;
 
-  // std::cout << "slope times stuff: " <<  SEMICHAMBER_H << " " << slope_x_halfchamb << " " << slope_x_3semicells << " " << slope_x_1semicell << std::endl;
-
-  // std::cout << "Clock cycle 6 finished" << std::endl;
   /*******************************
             clock cycle 7
   *******************************/
@@ -354,11 +274,9 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
       else if (i % 4 == 1) res_partials_arr[i] -= slope_x_1semicell;
       else if (i % 4 == 2) res_partials_arr[i] += slope_x_1semicell;
       else                 res_partials_arr[i] += slope_x_3semicells;
-      // std::cout << "c7.res_partials_arr[" << i << "]=" << res_partials_arr[i] << std::endl;
     }
   }
 
-  // std::cout << "Clock cycle 7 finished" << std::endl;
   /*******************************
             clock cycle 8
   *******************************/
@@ -370,12 +288,9 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
       position_prec_arr.push_back(-1);
     } else {
       int tmp_position_prec = res_partials_arr[i];
-    // std::cout "tmp_position_prec[" << i << "]=" << tmp_position_prec << std::endl;
       tmp_position_prec += (-1 + 2 * (int)(i >= NUM_LAYERS)) * slope_x_halfchamb;
-      // std::cout << "tmp_position_prec[" << i << "]=" << tmp_position_prec << std::endl;
       position_prec_arr.push_back(tmp_position_prec);
       residuals.push_back(abs(tmp_position_prec >> PARTIALS_PRECISSION));
-      // std::cout << "residuals[" << i << "]=" << residuals[i] << std::endl;
     }
   }
 
@@ -383,7 +298,6 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   int min_t0 = max_hit_time - MAX_DRIFT_TDC - T0_CUT_TOLERANCE;
   int max_t0 = min_hit_time + T0_CUT_TOLERANCE;
 
-  // std::cout << "Clock cycle 8 finished" << std::endl;
   /*******************************
             clock cycle 9
   *******************************/
@@ -396,25 +310,9 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   int position = (fit_common_in.coarse_wirepos << WIREPOS_NORM_LSB_IGNORED) + norm_position;
   int slope = norm_slope;
 
-  // std::cout << "t0_fine=" << t0_fine << " " ;
-  // std::cout << "t0_bx_sign=" << t0_bx_sign << " ";
-  // std::cout << "t0_bx_abs=" << t0_bx_abs << " ";
-  // std::cout << "position=" << position << " ";
-  // std::cout << "slope=" << slope << " " << std::endl;
-
   // Apply T0 cuts
-  // std::cout << norm_t0 << " " << min_t0 << std::endl;
   if (norm_t0 < min_t0) return fit_common_out_t();
-  // std::cout << norm_t0 << " " << max_t0 << std::endl;
   if (norm_t0 > max_t0) return fit_common_out_t();
-
-  // double slope_f = -(double(slope) / INCREASED_RES_SLOPE_POW);
-  // if (std::abs(slope_f) > tanPhiTh_)
-    // return;
-
-  // std::cout << slope << " " << (506 / 2) * 16 << std::endl;
-  // if (abs(slope) > (506 / 2) * 16)
-    // return fit_common_out_t();
 
   // square the residuals
   std::vector<int> squared_residuals;
@@ -430,18 +328,9 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   for (int i = 0; i < 2 * NUM_LAYERS; i++) {
     if (fit_common_in.hits_valid[i] == 1) {
       std::vector<int> tmp_vector;
-      // std::cout << "position_prec_arr[" << i << "]=" << position_prec_arr[i] << std::endl;
       int tmp_position_prec = (position_prec_arr[i] >> PARTIALS_PRECISSION);
-      // std::cout << tmp_position_prec << std::endl;
       vhdl_int_to_signed(tmp_position_prec, tmp_vector);
-      // for (auto & elem: tmp_vector)
-        // std::cout << elem;
-      // std::cout << endl;
       vhdl_resize_signed(tmp_vector, WIDTH_POSITION_PREC);
-      // for (auto & elem: tmp_vector)
-      // std::cout elem;
-    // std::cout endl;
-    // std::cout " " << CHI2_CALC_RES_BITS + 1 << std::endl;
       if (!vhdl_resize_signed_ok(tmp_vector, CHI2_CALC_RES_BITS + 1))
         return fit_common_out_t();
       // Commented for now, maybe later we need to do something here
@@ -450,12 +339,10 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
     }
   }
 
-  // std::cout << "Clock cycle 9 finished" << std::endl;
   /*******************************
         clock cycle 10, 11, 12
   *******************************/
   int t0 = t0_fine;
-  // std::cout << " coarse, sign, abs " << fit_common_in.coarse_bctr << " " << t0_bx_sign << " " << t0_bx_abs << std::endl;
   t0 += (fit_common_in.coarse_bctr - (- 1 + 2 * t0_bx_sign) * t0_bx_abs) * (int) std::pow(2, 5);
 
   int chi2 = 0;
@@ -466,18 +353,9 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   }
 
   // Impose the thresholds
-  // if (chi2 > 16 * 16)
-  // std::cout << "chi2 " << chi2 << " chi2/16 " << chi2 / 16 << " th f " << chi2Th_ << " th int " << round(chi2Th_ * (std::pow((float) MAX_DRIFT_TDC / ((float) CELL_SEMILENGTH / 10.), 2)) / 16.) << std::endl;
 
   if (chi2 / 16 >= (int) round(chi2Th_ * (std::pow((float) MAX_DRIFT_TDC / ((float) CELL_SEMILENGTH / 10.), 2)) / 16.))
     return fit_common_out_t();
-
-  // double chi2_f = double(chi2) / (16. * 64. * 100.);
-
-  // std::cout << "Final position: " << position << std::endl;
-  // std::cout << "Final slope: " << slope << std::endl;
-  // std::cout << "Final t0: " << t0 << std::endl;
-  // std::cout << "Final chi2: " << chi2 << std::endl;
 
   fit_common_out_t fit_common_out;
   fit_common_out.position = position;
@@ -485,8 +363,6 @@ fit_common_out_t MuonPathFitter::fit(fit_common_in_t fit_common_in,
   fit_common_out.t0 = t0;
   fit_common_out.chi2 = chi2;
   fit_common_out.valid_fit = 1;
-
-  // std::cout << "Clock cycle 10,11,12 finished" << std::endl;
 
   return fit_common_out;
 }

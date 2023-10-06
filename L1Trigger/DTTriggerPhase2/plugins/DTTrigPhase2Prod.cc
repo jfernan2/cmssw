@@ -23,7 +23,6 @@
 #include "L1Trigger/DTTriggerPhase2/interface/constants.h"
 
 #include "L1Trigger/DTTriggerPhase2/interface/MotherGrouping.h"
-// #include "L1Trigger/DTTriggerPhase2/interface/InitialGrouping.h"
 #include "L1Trigger/DTTriggerPhase2/interface/TrapezoidalGrouping.h"
 #include "L1Trigger/DTTriggerPhase2/interface/HoughGrouping.h"
 #include "L1Trigger/DTTriggerPhase2/interface/PseudoBayesGrouping.h"
@@ -160,7 +159,6 @@ private:
   std::unique_ptr<MPFilter> mpathqualityenhancerbayes_;
   std::unique_ptr<MPFilter> mpathredundantfilter_;
   std::unique_ptr<MPFilter> mpathhitsfilter_;
-  // std::unique_ptr<MuonPathAssociator> mpathassociator_;
   std::unique_ptr<MuonPathAnalyzer> mpathassociator_;
   std::unique_ptr<MuonPathConfirmator> mpathconfirmator_;
   std::unique_ptr<MPFilter> mpathcorfilter_;
@@ -237,16 +235,13 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
     grouping_obj_ =
         std::make_unique<HoughGrouping>(pset.getParameter<edm::ParameterSet>("HoughGrouping"), consumesColl);
   } else {
-    // grouping_obj_ = std::make_unique<InitialGrouping>(pset, consumesColl);
     grouping_obj_ = std::make_unique<TrapezoidalGrouping>(pset, consumesColl);
   }
 
   if (algo_ == Standard) {
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "DTp2:constructor: JM analyzer";
-    // mpathanalyzer_ = std::make_unique<MuonPathAnalyticAnalyzer>(pset, consumesColl, globalcoordsobtainer_);
     mpathanalyzer_ = std::make_unique<MuonPathSLFitter>(pset, consumesColl, globalcoordsobtainer_);
-    // latprovider_ = std::make_unique<LateralityBasicProvider>(pset, consumesColl);
     latprovider_ = std::make_unique<LateralityCoarsedProvider>(pset, consumesColl);
   } else {
     if (debug_)
@@ -260,11 +255,9 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
   superCelltimewidth_ = pset.getParameter<double>("superCelltimewidth");
 
   mpathqualityenhancer_ = std::make_unique<MPSLFilter>(pset);
-  // mpathqualityenhancer_ = std::make_unique<MPQualityEnhancerFilter>(pset);
   mpathqualityenhancerbayes_ = std::make_unique<MPQualityEnhancerFilterBayes>(pset);
   mpathredundantfilter_ = std::make_unique<MPRedundantFilter>(pset);
   mpathhitsfilter_ = std::make_unique<MPCleanHitsFilter>(pset);
-  // mpathassociator_ = std::make_unique<MuonPathAssociator>(pset, consumesColl, globalcoordsobtainer_);
   mpathconfirmator_ = std::make_unique<MuonPathConfirmator>(pset, consumesColl);
   mpathassociator_ = std::make_unique<MuonPathCorFitter>(pset, consumesColl, globalcoordsobtainer_);
   mpathcorfilter_ = std::make_unique<MPCorFilter>(pset);
@@ -396,17 +389,6 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     }
   }
 
-  // for (auto & ch_muonpaths: muonpaths) {
-    // for (unsigned int i = 0; i < ch_muonpaths.second.size(); i++) {
-      // std::cout << iEvent.id().event() << "      mpath " << i << ": ";
-      // for (int lay = 0; lay < ch_muonpaths.second.at(i)->nprimitives(); lay++)
-        // std::cout << ch_muonpaths.second.at(i)->primitive(lay)->channelId() << " ";
-      // for (int lay = 0; lay < ch_muonpaths.second.at(i)->nprimitives(); lay++)
-        // std::cout<< ch_muonpaths.second.at(i)->primitive(lay)->tdcTimeStamp() << " ";
-      // std::cout << std::endl;
-    // }
-  // }
-
   std::map<int, std::vector<lat_vector>> lateralities;
   if (!output_mixer_) {
     for (auto & ch_muonpaths: muonpaths) {
@@ -415,25 +397,6 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
     }
   }
-
-  // for (auto & ch_muonpaths: muonpaths) {
-    // for (unsigned int i = 0; i < ch_muonpaths.second.size(); i++) {
-      // std::cout << iEvent.id().event() << "      mpath " << i << ": ";
-      // for (int lay = 0; lay < ch_muonpaths.second.at(i)->nprimitives(); lay++)
-        // std::cout << ch_muonpaths.second.at(i)->primitive(lay)->channelId() << " ";
-      // for (int lay = 0; lay < ch_muonpaths.second.at(i)->nprimitives(); lay++)
-        // std::cout<< ch_muonpaths.second.at(i)->primitive(lay)->tdcTimeStamp() << " ";
-      // std::cout << std::endl;
-
-      // std::cout << "Lateralities: ";
-      // for (size_t lat = 0; lat < 3; lat++) {
-        // for (size_t lay = 0; lay < 4; lay++) {
-          // std::cout << lateralities[ch_muonpaths.first][i][lat][lay] << " ";
-        // }
-        // std::cout << std::endl;
-      // }
-    // }
-  // }
 
   // FILTER GROUPING
   std::map<int, MuonPathPtrs> filteredmuonpaths;
@@ -480,7 +443,6 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "Fitting 1SL ";
     for (auto & ch_muonpaths: muonpaths) { // FIXME, do we need filtered muonpaths?
-      // mpathanalyzer_->run(iEvent, iEventSetup, ch_filteredmuonpaths.second, metaPrimitives[ch_filteredmuonpaths.first]);
       if (!output_mixer_ && !output_latpredictor_)
         mpathanalyzer_->run(iEvent, iEventSetup, ch_muonpaths.second, lateralities[ch_muonpaths.first], metaPrimitives[ch_muonpaths.first]);
       else if (output_mixer_) {
@@ -682,12 +644,6 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
     }
   }
-  // for (auto & ch_metaPrimitives: metaPrimitives) {
-    // for (unsigned int i = 0; i < ch_metaPrimitives.second.size(); i++) {
-      // std::cout << " SL mp " << i << ": ";
-      // printmPC(ch_metaPrimitives.second.at(i));
-    // }
-  // }
 
   muonpaths.clear();
   filteredmuonpaths.clear();
@@ -707,13 +663,6 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
   }
   
-  // for (auto & ch_metaPrimitives: confirmedMetaPrimitives) {
-    // for (unsigned int i = 0; i < ch_metaPrimitives.second.size(); i++) {
-      // std::cout << " SL confmp " << i << ": ";
-      // printmPC(ch_metaPrimitives.second.at(i));
-    // }
-  // }
-
   metaPrimitives.clear();
   skip_processing_ = skip_processing_ || output_confirmed_;
 
@@ -743,16 +692,9 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
     }
   }
-  // for (auto & ch_metaPrimitives: filteredMetaPrimitives) {
-    // for (unsigned int i = 0; i < ch_metaPrimitives.second.size(); i++) {
-      // std::cout << " SL filtmp " << i << ": ";
-      // printmPC(ch_metaPrimitives.second.at(i));
-    // }
-  // }
 
   skip_processing_ = skip_processing_ || output_slfilter_;
   confirmedMetaPrimitives.clear();
-  // metaPrimitives.erase(metaPrimitives.begin(), metaPrimitives.end());
 
   if (debug_)
     for (auto & ch_filteredMetaPrimitives: filteredMetaPrimitives) {
@@ -771,16 +713,12 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   std::map<int, std::vector<metaPrimitive>> correlatedMetaPrimitives;
   if (algo_ == Standard) {
     for (auto & ch_filteredMetaPrimitives: filteredMetaPrimitives) {
-      // mpathassociator_->run(iEvent, iEventSetup, dtdigis, ch_filteredMetaPrimitives.second, correlatedMetaPrimitives[ch_filteredMetaPrimitives.first]);
       if (!skip_processing_)
         mpathassociator_->run(iEvent, iEventSetup, ch_filteredMetaPrimitives.second, correlatedMetaPrimitives[ch_filteredMetaPrimitives.first]);
       else
         for (auto &mp: ch_filteredMetaPrimitives.second) {
           correlatedMetaPrimitives[ch_filteredMetaPrimitives.first].push_back(mp);
         }
-      // for (auto & tp: ch_filteredMetaPrimitives.second) {
-        // correlatedMetaPrimitives[ch_filteredMetaPrimitives.first].push_back(tp);
-      // }
     }
   } else {
     for (auto & ch_outmpaths: outmpaths) {
@@ -824,7 +762,6 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   }
 
   skip_processing_ = skip_processing_ || output_matcher_;
-  // filteredMetaPrimitives.clear();
 
   if (debug_)
     for (auto & ch_correlatedMetaPrimitives: correlatedMetaPrimitives) {
@@ -844,12 +781,6 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
     }
   }
-  // for (auto & ch_correlatedMetaPrimitives: correlatedMetaPrimitives) {
-    // for (unsigned int i = 0; i < ch_correlatedMetaPrimitives.second.size(); i++) {
-      // std::cout << " correlated mp " << i << ": ";
-      // printmPC(ch_correlatedMetaPrimitives.second.at(i));
-    // }
-  // }
 
   // Correlated Filtering
   std::map<int, std::vector<metaPrimitive>> filtCorrelatedMetaPrimitives;
@@ -872,13 +803,6 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       }
     }
   }
-  
-  // for (auto & ch_correlatedMetaPrimitives: filtCorrelatedMetaPrimitives) {
-      // for (unsigned int i = 0; i < ch_correlatedMetaPrimitives.second.size(); i++) {
-      // std::cout << "filtered correlated mp " << i << ": ";
-      // printmPC(ch_correlatedMetaPrimitives.second.at(i));
-    // }
-  // }
   
   correlatedMetaPrimitives.clear();
   filteredMetaPrimitives.clear();

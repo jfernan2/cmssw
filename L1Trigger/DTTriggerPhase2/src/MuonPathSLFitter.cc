@@ -78,7 +78,6 @@ void MuonPathSLFitter::run(edm::Event &iEvent,
   }
       
   for (size_t i = 0; i < muonpaths.size(); i++) {
-    // std::cout << "Starting with muon path " << i << std::endl;
     auto muonpath = muonpaths[i];
     auto lats = lateralities[i];
     analyze(muonpath, lats, metaPrimitives);
@@ -105,9 +104,6 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
   auto dtDumlayerId = DTLayerId(dumLayId);
   DTSuperLayerId MuonPathSLId(dtDumlayerId.wheel(), dtDumlayerId.station(), dtDumlayerId.sector(), sl + 1);
 
-  // if (MuonPathSLId.rawId() != 580788224)
-    // return;
-
   DTChamberId ChId(MuonPathSLId.wheel(), MuonPathSLId.station(), MuonPathSLId.sector());
 
   DTSuperLayerId MuonPathSL1Id(dtDumlayerId.wheel(), dtDumlayerId.station(), dtDumlayerId.sector(), 1);
@@ -116,7 +112,6 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
   DTWireId wireIdSL3(MuonPathSL3Id, 2, 1);
   auto sl_shift_cm = shiftinfo_[wireIdSL1.rawId()] - shiftinfo_[wireIdSL3.rawId()];
   
-  // std::cout << "SL" << sl << std::endl;
   if (sl == 1)
     return;
   fit_common_in_t fit_common_in;
@@ -135,13 +130,8 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
         // Include both valid and non-valid hits. Non-valid values can be whatever, leaving all as -1 to make debugging easier.
         auto ti = inMPath->primitive(i)->tdcTimeStamp();
         if (ti != -1) ti = (int) round(((float) TIME_TO_TDC_COUNTS/ (float) LHC_CLK_FREQ) * ti);
-        // std::cout << "ti: " << ti << std::endl;
         auto wi = inMPath->primitive(i)->channelId();
         auto ly = inMPath->primitive(i)->layerId();
-        // int layId = inMPath->primitive(i)->cameraId();
-        // auto dtlayerId = DTLayerId(layId);
-        // auto wireId = DTWireId(dtlayerId, wi + 1); // wire start from 1, mixer groups them starting from 0
-        // int rawId = wireId.rawId();
         // wp in tdc counts (still in floating point)
         int wp_semicells = (wi - SL1_CELLS_OFFSET) * 2 + 1;
         if (ly % 2 == 1)
@@ -149,10 +139,7 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
         if (isl == 1)
           wp_semicells -= (int) round((sl_shift_cm * 10) / CELL_SEMILENGTH);
         float wp_tdc = wp_semicells * max_drift_tdc;
-        // float wp_f = ((10. * shiftinfo_[rawId] / CELL_SEMILENGTH) * max_drift_tdc);
-        // std::cout << "WPF: " << wp_f << " " <<  max_drift_tdc << " " << shiftinfo_[rawId] << " " << (10. * shiftinfo_[rawId] / CELL_SEMILENGTH) << " " << rawId << std::endl;
         int wp = (int) ((long int)(round(wp_tdc * std::pow(2, WIREPOS_WIDTH))) / (int) std::pow(2, WIREPOS_WIDTH));
-        // std::cout << "ly: " << ly << " wi:" << wi << " " << " WP: " << wp << std::endl;
         fit_common_in.hits.push_back({ti, wi, ly, wp});
         // fill valids as well
         if (inMPath->missingLayer() == i) fit_common_in.hits_valid.push_back(0);
@@ -194,7 +181,6 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
     fit_common_in.lateralities.clear();
 
     auto rom_addr = get_rom_addr(inMPath, lat_comb);
-    // std::cout << rom_addr << std::endl;
     coeffs_t coeffs;
     if (sl == 0) {
       coeffs = RomDataConvert(lut_sl1[rom_addr], COEFF_WIDTH_SL_T0, COEFF_WIDTH_SL_POSITION, COEFF_WIDTH_SL_SLOPE, 2 * sl, 2 * sl + 3);
@@ -212,20 +198,6 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
       }
     }
     fit_common_in.coeffs = coeffs;
-    // std::cout << "Starting to fit" << std::endl;
-    // std::cout << inMPath->primitive(0)->channelId() << " ";
-    // std::cout << inMPath->primitive(1)->channelId() << " ";
-    // std::cout << inMPath->primitive(2)->channelId() << " ";
-    // std::cout << inMPath->primitive(3)->channelId() << " ";
-    // std::cout << inMPath->primitive(0)->tdcTimeStamp() << " ";
-    // std::cout << inMPath->primitive(1)->tdcTimeStamp() << " ";
-    // std::cout << inMPath->primitive(2)->tdcTimeStamp() << " ";
-    // std::cout << inMPath->primitive(3)->tdcTimeStamp() << " ";
-    // std::cout << lat_comb[0] << " ";
-    // std::cout << lat_comb[1] << " ";
-    // std::cout << lat_comb[2] << " ";
-    // std::cout << lat_comb[3] << " ";
-    // std::cout << std::endl;
 
     auto fit_common_out = fit(fit_common_in,
                               XI_SL_WIDTH,
@@ -239,34 +211,22 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
                               PROD_RESIZE_SL_POSITION,
                               PROD_RESIZE_SL_SLOPE,
                               max_drift_tdc);
-    // std::cout << "Valid fit: " << fit_common_out.valid_fit << std::endl;
     if (fit_common_out.valid_fit == 1) {
       float t0_f = ((float) fit_common_out.t0) * (float) LHC_CLK_FREQ / (float) TIME_TO_TDC_COUNTS;
 
-      // std::cout << fit_common_out.t0 << " " << t0_f << std::endl;
 
       float slope_f = -fit_common_out.slope * ((float) CELL_SEMILENGTH / max_drift_tdc) * (1) / (CELL_SEMIHEIGHT * 16.);
-      // std::cout << std::abs(slope_f) << " " << tanPhiTh_ << std::endl;
       if (std::abs(slope_f) > tanPhiTh_)
         continue;
 
-      // std::cout << "SLOPE: " << fit_common_out.slope  << " " << SLOPE_LSB << " " << slope_f << std::endl;
-      // float pos_sl_f = ((float) (fit_common_out.position) + (sl - 1) * (fit_common_out.slope / 16.))
-        // * ((float) CELL_SEMILENGTH / (float) max_drift_tdc);
-      // std::cout << "POSITION: " << fit_common_out.position << " " << ((float) (fit_common_out.position) + (sl - 1) * (fit_common_out.slope / 16.)) << " " << ((float) (fit_common_out.position) + (sl - 1) * (fit_common_out.slope / 16.))
-         // ((float) CELL_SEMILENGTH / (float) max_drift_tdc) << std::endl;
-      // pos_sl_f /= 10.;
       DTWireId wireId(MuonPathSLId, 2, 1);
       float pos_ch_f = (float) (fit_common_out.position) * ((float) CELL_SEMILENGTH / (float) max_drift_tdc) / 10;
       pos_ch_f += (SL1_CELLS_OFFSET * CELL_LENGTH) / 10.;
       pos_ch_f += shiftinfo_[wireIdSL1.rawId()];
-      // if (sl == 2)
-        // pos_ch_f -= sl_shift_cm;
       float pos_sl_f = pos_ch_f - (sl - 1) * slope_f * VERT_PHI1_PHI3 / 2;
       float chi2_f = fit_common_out.chi2 * std::pow(((float) CELL_SEMILENGTH / (float) max_drift_tdc), 2) / 100;
 
       // obtention of global coordinates using luts
-      // std::cout << "SL" << sl << " " << shiftinfo_[wireId.rawId()] << std::endl;
       int pos = (int) (10 * (pos_sl_f - shiftinfo_[wireId.rawId()]) * INCREASED_RES_POS_POW);
       int slope = (int) (-slope_f * INCREASED_RES_SLOPE_POW);
       auto global_coords =
@@ -276,17 +236,9 @@ void MuonPathSLFitter::analyze(MuonPathPtr &inMPath, lat_vector lat_combs, std::
 
       // obtention of global coordinates using cmssw geometry
       double z = 0;
-      // double z1 = Z_POS_SL;
-      // double z3 = -1. * z1;
       if (ChId.station() == 3 or ChId.station() == 4) {
-        // z1 = z1 + Z_SHIFT_MB4;
-        // z3 = z3 + Z_SHIFT_MB4;
         z = Z_SHIFT_MB4;
       }
-      // if (MuonPathSLId.superLayer() == 1)
-        // z = z1;
-      // else if (MuonPathSLId.superLayer() == 3)
-        // z = z3;
       GlobalPoint jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(pos_sl_f, 0., z));
       int thisec = ChId.sector();
       if (thisec == 13)
@@ -406,17 +358,6 @@ void MuonPathSLFitter::fillLuts() {
 
 
 int MuonPathSLFitter::get_rom_addr(MuonPathPtr &inMPath, latcomb lats) {
-  /*
-    vhdl code:
-    rom_addr(5) <= reg.c1_input.segment.is4hit;
-    if reg.c1_input.segment.is4hit = '1' then -- 4 layers fit
-      rom_addr(4) <= '0';
-      rom_addr(3 downto 0) <= reg.c1_input.segment.lateralities;
-    else -- 3 layers fit
-      rom_addr(4 downto 3) <= std_logic_vector(reg.c1_input.segment.missing_layer);
-      rom_addr(2 downto 0) <= reg.c1_zeroSupprLats;
-    end if;
-  */
   std::vector<int> rom_addr;
   auto missing_layer = inMPath->missingLayer();
   if (missing_layer == -1) {

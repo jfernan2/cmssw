@@ -91,23 +91,17 @@ void MuonPathCorFitter::run(edm::Event& iEvent,
               if (isl2 >= MAX_PRIM_PER_BX_FOR_COR)
                 break;
               if (bxs_to_consider[ibx].sl == 1) {
-                // std::cout << prim1.t0 << " " << prim2.t0;
                 if (!canCorrelate(prim1, prim2)) {
-                  // std::cout << " cannot correlate" << std::endl;
                   continue;
                 }
-                // std::cout << " can correlate" << std::endl;
                 if (prim1.quality >= 3 && prim2.quality >= 3) mps_q8.push_back(mp_group({prim1, prim2}));
                 else if ((prim1.quality >= 3 && prim2.quality < 3) || (prim1.quality < 3 && prim2.quality >= 3))
                   mps_q7.push_back(mp_group({prim1, prim2}));
                 else mps_q6.push_back(mp_group({prim1, prim2}));
               } else {
-                // std::cout << prim2.t0 << " " << prim1.t0;
                 if (!canCorrelate(prim2, prim1)) {
-                  // std::cout << " cannot correlate" << std::endl;
                   continue;
                 }
-                // std::cout << " can correlate" << std::endl;
                 if (prim2.quality >= 3 && prim1.quality >= 3) mps_q8.push_back(mp_group({prim2, prim1}));
                 else if ((prim2.quality >= 3 && prim1.quality < 3) || (prim2.quality < 3 && prim1.quality >= 3))
                   mps_q7.push_back(mp_group({prim2, prim1}));
@@ -120,7 +114,6 @@ void MuonPathCorFitter::run(edm::Event& iEvent,
         }
       } // looping over the 0 -> N-1 BX groups
     } // looping over the 1 -> N BX groups
-    // std::cout << mps_q8.size() << " " << mps_q7.size() << " " << mps_q6.size() << std::endl;
     int iq = 0;
     for (size_t i = 0; i < mps_q8.size(); i++) {
       if (iq >= MAX_PRIM_FOR_COR)
@@ -145,55 +138,23 @@ void MuonPathCorFitter::run(edm::Event& iEvent,
 
 bool MuonPathCorFitter::canCorrelate(cmsdt::metaPrimitive mp_sl1, cmsdt::metaPrimitive mp_sl3) {
   // moving position from SL RF to chamber RF
-
-  // float pos_ch_sl1_f = mp_sl1.x - mp_sl1.tanPhi * VERT_PHI1_PHI3 / 2;
   float pos_ch_sl1_f = mp_sl1.x;
-  // float pos_ch_sl3_f = mp_sl3.x + mp_sl3.tanPhi * VERT_PHI1_PHI3 / 2;
   float pos_ch_sl3_f = mp_sl3.x;
 
   // translating into tdc counts
   int pos_ch_sl1 = int(pos_ch_sl1_f);
   int pos_ch_sl3 = int(pos_ch_sl3_f);
 
-  // int slope_sl1 = (int) (-mp_sl1.tanPhi / (SLOPE_LSB * INCREASED_RES_SLOPE_POW));
   int slope_sl1 = (int) mp_sl1.tanPhi;
-  // std::vector<int> slope_sl1_slv;
-  // vhdl_int_to_signed(slope_sl1, slope_sl1_slv);
-  // auto slope_sl1_slv_coarsed = vhdl_slice(slope_sl1_slv, WIDTH_FULL_SLOPE, WIDTH_POS_SLOPE_CORR);
-  // auto slope_sl1_coarsed = vhdl_signed_to_int(slope_sl1_slv_coarsed);
-
-  // int slope_sl3 = (int) (-mp_sl3.tanPhi / (SLOPE_LSB * INCREASED_RES_SLOPE_POW));
   int slope_sl3 = (int) mp_sl3.tanPhi;
-  // std::vector<int> slope_sl3_slv;
-  // vhdl_int_to_signed(slope_sl3, slope_sl3_slv);
-  // auto slope_sl3_slv_coarsed = vhdl_slice(slope_sl3_slv, WIDTH_FULL_SLOPE, WIDTH_POS_SLOPE_CORR);
-  // auto slope_sl3_coarsed = vhdl_signed_to_int(slope_sl3_slv_coarsed);
-
-  // std::cout << "SLOPE " << slope_sl1 << " " <<  (slope_sl1 >> WIDTH_POS_SLOPE_CORR) << " " << slope_sl3 << " " << (slope_sl3 >> WIDTH_POS_SLOPE_CORR) << std::endl;
 
   if (abs((slope_sl1 >> WIDTH_POS_SLOPE_CORR)
       - (slope_sl3 >> WIDTH_POS_SLOPE_CORR)) > 1)
-  // if (abs(slope_sl1_coarsed - slope_sl3_coarsed) > 1)
     return false;
-
-  // std::vector<int> pos_sl1_slv;
-  // vhdl_int_to_signed(pos_sl1, pos_sl1_slv);
-  // auto pos_sl1_slv_coarsed = vhdl_slice(pos_sl1_slv, WIDTH_FULL_POS, WIDTH_POS_SLOPE_CORR);
-  // auto pos_sl1_coarsed = vhdl_signed_to_int(pos_sl1_slv_coarsed);
-
-  // std::vector<int> pos_sl3_slv;
-  // vhdl_int_to_signed(pos_sl3, pos_sl3_slv);
-  // auto pos_sl3_slv_coarsed = vhdl_slice(pos_sl3_slv, WIDTH_FULL_POS, WIDTH_POS_SLOPE_CORR);
-  // auto pos_sl3_coarsed = vhdl_signed_to_int(pos_sl3_slv_coarsed);
-
-  // std::cout << "POS" << std::endl;
 
   if (abs((pos_ch_sl1 >> WIDTH_POS_SLOPE_CORR)
       - (pos_ch_sl3 >> WIDTH_POS_SLOPE_CORR)) > 1)
-  // if (abs(pos_sl1_coarsed - pos_sl3_coarsed) > 1)
     return false;
-
-  // std::cout << "TIME" << std::endl;
 
   if (abs(mp_sl1.t0 - mp_sl3.t0) > dT0_correlate_TP_)
     return false;
@@ -213,11 +174,8 @@ void MuonPathCorFitter::finish() {
 void MuonPathCorFitter::analyze(mp_group mp, std::vector<cmsdt::metaPrimitive> &metaPrimitives) {
   //FIXME
   DTSuperLayerId MuonPathSLId(mp[0].rawId);  // SL1
-  // if (MuonPathSLId.rawId() != 580788224)
-    // return;
 
   DTChamberId ChId(MuonPathSLId.wheel(), MuonPathSLId.station(), MuonPathSLId.sector());
-  // std::cout << "SL" << sl << std::endl;
 
   DTSuperLayerId MuonPathSL1Id(ChId.wheel(), ChId.station(), ChId.sector(), 1);
   DTSuperLayerId MuonPathSL3Id(ChId.wheel(), ChId.station(), ChId.sector(), 3);
@@ -265,30 +223,18 @@ void MuonPathCorFitter::analyze(mp_group mp, std::vector<cmsdt::metaPrimitive> &
         // Include both valid and non-valid hits. Non-valid values can be whatever, leaving all as -1 to make debugging easier.
         auto ti = tdc[i];
         if (ti != -1) ti = (int) round(((float) TIME_TO_TDC_COUNTS/ (float) LHC_CLK_FREQ) * ti);
-        // std::cout << "ti: " << ti << std::endl;
         auto wi = wire[i];
         auto ly = i;
-        // DTSuperLayerId thisSLId(mp[isl].rawId);
-        // auto wireId = DTWireId(thisSLId, i + 1, wi + 1); // wire start from 1, mixer groups them starting from 0
-        // int rawId = wireId.rawId();
 
         int wp_semicells = (wi - SL1_CELLS_OFFSET) * 2 + 1;
-        // std::cout << "wp_semicells " << wi << " " << SL1_CELLS_OFFSET << " " <<  wp_semicells << std::endl;
         if (ly % 2 == 1)
           wp_semicells -= 1;
-        // std::cout << sl_shift_cm << std::endl;
         if (isl == 1)  // SL3
           wp_semicells -= (int) round((sl_shift_cm * 10) / CELL_SEMILENGTH);
         float wp_tdc = wp_semicells * max_drift_tdc;
-        // float wp_f = ((10. * shiftinfo_[rawId] / CELL_SEMILENGTH) * max_drift_tdc);
-        // std::cout << "WPF: " << wp_f << " " <<  max_drift_tdc << " " << shiftinfo_[rawId] << " " << (10. * shiftinfo_[rawId] / CELL_SEMILENGTH) << " " << rawId << std::endl;
         int wp = (int) ((long int)(round(wp_tdc * std::pow(2, WIREPOS_WIDTH))) / (int) std::pow(2, WIREPOS_WIDTH));
 
         // wp in tdc counts (still in floating point)
-        // float wp_f = ((10. * shiftinfo_[rawId] / CELL_SEMILENGTH) * max_drift_tdc);
-        // std::cout << "WPF: " << wp_f << " " <<  max_drift_tdc << " " << shiftinfo_[rawId] << " " << (10. * shiftinfo_[rawId] / CELL_SEMILENGTH) << " " << rawId << std::endl;
-        // int wp = (int) ((long int)(round(wp_tdc * std::pow(2, WIREPOS_WIDTH))) / (int) std::pow(2, WIREPOS_WIDTH));
-        // std::cout << "WP: " << wp << std::endl;
         fit_common_in.hits.push_back({ti, wi, ly, wp});
         // fill valids as well
         fit_common_in.hits_valid.push_back(1);
@@ -331,7 +277,6 @@ void MuonPathCorFitter::analyze(mp_group mp, std::vector<cmsdt::metaPrimitive> &
   coeffs_t coeffs = RomDataConvert(lut_2sl[rom_addr], COEFF_WIDTH_COR_T0, COEFF_WIDTH_COR_POSITION, COEFF_WIDTH_COR_SLOPE, 0, 7);
 
   // Filling lateralities
-  // std::cout << "Lateralities: ";
   for (int isl = 0; isl < 2; isl++) {
     int lat[4];
     if (isl != 1) {
@@ -351,58 +296,7 @@ void MuonPathCorFitter::analyze(mp_group mp, std::vector<cmsdt::metaPrimitive> &
     }
   }
 
-  // std::cout << "Wires ";
-  // for (int i = 0; i < 8; i++)
-    // std::cout << fit_common_in.hits[i].wi << " ";
-  // std::cout << std::endl;
-
-  // std::cout << "TDC ";
-  // for (int i = 0; i < 8; i++)
-    // std::cout << fit_common_in.hits[i].ti << " ";
-  // std::cout << std::endl;
-
-  // std::cout << "lay ";
-  // for (int i = 0; i < 8; i++)
-    // std::cout << fit_common_in.hits[i].ly << " ";
-  // std::cout << std::endl;
-
-  // std::cout << "wp ";
-  // for (int i = 0; i < 8; i++)
-    // std::cout << fit_common_in.hits[i].wp << " ";
-  // std::cout << std::endl;
-
-  // std::cout << "Lateralities ";
-  // for (int i = 0; i < 8; i++)
-    // std::cout << fit_common_in.lateralities[i] << " ";
-  // std::cout << std::endl;
-
-  // std::cout << std::endl;
   fit_common_in.coeffs = coeffs;
-  // std::cout << "Starting to fit" << std::endl;
-  // std::cout << mp[0].wi1 << " ";
-  // std::cout << mp[0].wi2 << " ";
-  // std::cout << mp[0].wi3 << " ";
-  // std::cout << mp[0].wi4 << " ";
-  // std::cout << mp[1].wi1 << " ";
-  // std::cout << mp[1].wi2 << " ";
-  // std::cout << mp[1].wi3 << " ";
-  // std::cout << mp[1].wi4 << " ";
-  // std::cout << mp[0].tdc1 << " ";
-  // std::cout << mp[0].tdc2 << " ";
-  // std::cout << mp[0].tdc3 << " ";
-  // std::cout << mp[0].tdc4 << " ";
-  // std::cout << mp[1].tdc1 << " ";
-  // std::cout << mp[1].tdc2 << " ";
-  // std::cout << mp[1].tdc3 << " ";
-  // std::cout << mp[1].tdc4 << " ";
-  // std::cout << inMPath->primitive(0)->channelId() << " ";
-  // std::cout << inMPath->primitive(1)->channelId() << " ";
-  // std::cout << inMPath->primitive(2)->channelId() << " ";
-  // std::cout << inMPath->primitive(3)->channelId() << " ";
-  // std::cout << inMPath->primitive(0)->tdcTimeStamp() << " ";
-  // std::cout << inMPath->primitive(1)->tdcTimeStamp() << " ";
-  // std::cout << inMPath->primitive(2)->tdcTimeStamp() << " ";
-  // std::cout << inMPath->primitive(3)->tdcTimeStamp() << std::endl;
 
   auto fit_common_out = fit(fit_common_in,
                             XI_COR_WIDTH,
@@ -417,20 +311,12 @@ void MuonPathCorFitter::analyze(mp_group mp, std::vector<cmsdt::metaPrimitive> &
                             PROD_RESIZE_COR_SLOPE,
                             max_drift_tdc);
                             
-  // std::cout << "Valid fit: " << fit_common_out.valid_fit << std::endl;
   if (fit_common_out.valid_fit == 1) {
     float t0_f = ((float) fit_common_out.t0) * (float) LHC_CLK_FREQ / (float) TIME_TO_TDC_COUNTS;
     float slope_f = -fit_common_out.slope * ((float) CELL_SEMILENGTH / max_drift_tdc) * (1) / (CELL_SEMIHEIGHT * 16.);
-    // std::cout << std::abs(slope_f) << " " << tanPhiTh_ << std::endl;
     if (std::abs(slope_f) > tanPhiTh_)
       return;
 
-    // std::cout << "SLOPE: " << fit_common_out.slope  << " " << SLOPE_LSB << " " << slope_f << std::endl;
-    // float pos_sl_f = ((float) (fit_common_out.position) + (sl - 1) * (fit_common_out.slope / 16.))
-      // * ((float) CELL_SEMILENGTH / (float) max_drift_tdc);
-    // std::cout << "POSITION: " << fit_common_out.position << " " << ((float) (fit_common_out.position) + (sl - 1) * (fit_common_out.slope / 16.)) << " " << ((float) (fit_common_out.position) + (sl - 1) * (fit_common_out.slope / 16.))
-       // ((float) CELL_SEMILENGTH / (float) max_drift_tdc) << std::endl;
-    // pos_sl_f /= 10.;
     DTWireId wireId(MuonPathSLId, 2, 1);
     float pos_ch_f = (float) (fit_common_out.position) * ((float) CELL_SEMILENGTH / (float) max_drift_tdc) / 10;
     pos_ch_f += (SL1_CELLS_OFFSET * CELL_LENGTH) / 10.;
@@ -519,33 +405,6 @@ void MuonPathCorFitter::fillLuts() {
 
 
 int MuonPathCorFitter::get_rom_addr(mp_group mps, std::vector<int> missing_hits) {
-  /*
-    vhdl code:
-    rom_addr(10) <= reg.c1_input.segs(0).is4hit xor reg.c1_input.segs(1).is4hit;
-    
-    if reg.c1_input.segs(0).is4hit /= reg.c1_input.segs(1).is4hit then -- 7 layers fit
-      rom_addr(9) <= reg.c1_input.segs(0).is4hit;
-      if reg.c1_input.segs(0).is4hit = '0' then
-        rom_addr(8 downto 7) <= std_logic_vector(reg.c1_input.segs(0).missing_layer);
-        rom_addr(6 downto 4) <= reg.c1_zeroSupprLats(0);
-        rom_addr(3 downto 0) <= reg.c1_input.segs(1).lateralities;
-      else
-        rom_addr(8 downto 7) <= std_logic_vector(reg.c1_input.segs(1).missing_layer);
-        rom_addr(6 downto 3) <= reg.c1_input.segs(0).lateralities;
-        rom_addr(2 downto 0) <= reg.c1_zeroSupprLats(1);
-      end if;
-    else
-      if reg.c1_input.segs(0).is4hit = '1' then -- 8 layers fit
-        rom_addr(9 downto 0) <= reg.c1_input.segs(0).lateralities & reg.c1_input.segs(1).lateralities 
-          & reg.c1_input.segs(1).lateralities(3) & reg.c1_input.segs(1).lateralities(3);
-      else -- 6 layers fit
-        rom_addr(9 downto 8) <= std_logic_vector(reg.c1_input.segs(1).missing_layer);
-        rom_addr(7 downto 6) <= std_logic_vector(reg.c1_input.segs(0).missing_layer);
-        rom_addr(5 downto 3) <= reg.c1_zeroSupprLats(0);
-        rom_addr(2 downto 0) <= reg.c1_zeroSupprLats(1);
-      end if;
-    end if;
-  */
 
   std::vector<int> lats = {
     mps[0].lat1,
@@ -618,8 +477,5 @@ int MuonPathCorFitter::get_rom_addr(mp_group mps, std::vector<int> missing_hits)
     }
   }
   std::reverse(rom_addr.begin(), rom_addr.end());
-  // for (auto &elem: rom_addr)
-    // std::cout << elem;
-  // std::cout << std::endl;
   return vhdl_unsigned_to_int(rom_addr);
 }

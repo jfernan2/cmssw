@@ -62,7 +62,6 @@ void MuonPathConfirmator::run(edm::Event &iEvent,
     LogDebug("MuonPathConfirmator") << "MuonPathConfirmator: run";
 
   // fit per SL (need to allow for multiple outputs for a single mpath)
-  // for (auto &muonpath : muonpaths) {
   if (inMetaPrimitives.size() > 0) {
     int dum_sl_rawid = inMetaPrimitives[0].rawId;
     DTSuperLayerId dumSlId(dum_sl_rawid);
@@ -94,7 +93,6 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
                                edm::Handle<DTDigiCollection> dtdigis,
                                std::vector<cmsdt::metaPrimitive> &outMetaPrimitives)
 {
-  // std::cout << mp.t0 << std::endl;
   int dum_sl_rawid = mp.rawId;
   DTSuperLayerId dumSlId(dum_sl_rawid);
   DTChamberId ChId(dumSlId.wheel(), dumSlId.station(), dumSlId.sector());
@@ -104,7 +102,6 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
   DTWireId wireIdSL1(sl1Id, 2, 1);
   DTWireId wireIdSL3(sl3Id, 2, 1);
   auto sl_shift_cm = shiftinfo_[wireIdSL1.rawId()] - shiftinfo_[wireIdSL3.rawId()];
-  // std::cout << sl_shift_cm << std::endl;
   bool isSL1 = (mp.rawId == sl1Id.rawId());
   int best_tdc = -1;
   int next_tdc = -1;
@@ -120,15 +117,9 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
   int position_prec = ((int) (mp.x)) << PARTIALS_PRECISSION;
   int slope_prec = ((int) (mp.tanPhi)) << PARTIALS_PRECISSION;
 
-  // std::cout << SEMICHAMBER_H << " " << SEMICHAMBER_RES_SHR << " " << LYRANDAHALF_RES_SHR << std::endl;
-
-  // std::cout << position_prec << " " << slope_prec << " ";
-
   int slope_x_halfchamb = (((long int) slope_prec) * SEMICHAMBER_H) >> SEMICHAMBER_RES_SHR;
   int slope_x_3semicells = (slope_prec * 3) >> LYRANDAHALF_RES_SHR;
   int slope_x_1semicell = (slope_prec * 1) >> LYRANDAHALF_RES_SHR;
-
-  // std::cout << slope_x_halfchamb << " " << slope_x_3semicells << " " << slope_x_1semicell << std::endl;
 
   for (const auto &dtLayerId_It : *dtdigis) {
     const DTLayerId dtLId = dtLayerId_It.first;
@@ -150,7 +141,6 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
           wp_semicells -= 1;
         if (hitFromSL3)
           wp_semicells -= (int) round((sl_shift_cm * 10) / CELL_SEMILENGTH);
-        // std::cout << (*digiIt).wire() - 1  << " " << wp_semicells << std::endl;
         double hit_position = wp_semicells * max_drift_tdc + ((*digiIt).time() - mp.t0) * (double) TIME_TO_TDC_COUNTS / (double) LHC_CLK_FREQ;
         double hit_position_left  = wp_semicells * max_drift_tdc - ((*digiIt).time() - mp.t0) * (double) TIME_TO_TDC_COUNTS / (double) LHC_CLK_FREQ;
         // extrapolating position to the layer of the hit
@@ -159,7 +149,6 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
         // 10 * VERT_PHI1_PHI3 / 2 + (CELL_HEIGHT / 2) + ly * CELL_HEIGHT = (10 * VERT_PHI1_PHI3 + (2 * ly + 1) * CELL_HEIGHT) / 2
 
         int position_in_layer = position_prec + (1 - 2 * (int) hitFromSL1) * slope_x_halfchamb;
-        // std::cout << position_prec << " " << position_in_layer << " ";
         if (ly == 0)
             position_in_layer -= slope_x_3semicells;
         if (ly == 1)
@@ -168,10 +157,7 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
             position_in_layer += slope_x_1semicell;
         if (ly == 3)
             position_in_layer += slope_x_3semicells;
-        // std::cout << position_in_layer << std::endl;
         position_in_layer = position_in_layer >> PARTIALS_PRECISSION;
-
-        // std::cout << position_in_layer << " " << hit_position_left << " " << hit_position << std::endl;
 
         if (std::abs(position_in_layer - hit_position_left) < std::abs(position_in_layer - hit_position)) {
           lat = 0;
@@ -304,9 +290,4 @@ void MuonPathConfirmator::analyze(cmsdt::metaPrimitive mp,
       -1}));
   }
 }
-
-//------------------------------------------------------------------
-//--- Metodos privados
-//------------------------------------------------------------------
-
 

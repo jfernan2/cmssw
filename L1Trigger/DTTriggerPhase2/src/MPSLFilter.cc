@@ -33,22 +33,15 @@ void MPSLFilter::run(edm::Event &iEvent,
     DTSuperLayerId sl3Id(ChId.rawId(), 3);
 
     std::vector<metaPrimitive> SL1metaPrimitives;
-    // std::map<int, std::vector<metaPrimitive>> SL1metaPrimitivesPerBX;
     std::vector<metaPrimitive> SL3metaPrimitives;
-    // std::map<int, std::vector<metaPrimitive>> SL3metaPrimitivesPerBX;
     for (const auto &metaprimitiveIt : inMPaths) {
-      // int BX = metaprimitiveIt.t0 / 25;
       if (metaprimitiveIt.rawId == sl1Id.rawId())
-        // SL1metaPrimitivesPerBX[BX].push_back(metaprimitiveIt);
         SL1metaPrimitives.push_back(metaprimitiveIt);
       else if (metaprimitiveIt.rawId == sl3Id.rawId())
-        // SL3metaPrimitivesPerBX[BX].push_back(metaprimitiveIt);
         SL3metaPrimitives.push_back(metaprimitiveIt);
     }
 
-    // auto filteredSL1MPs = filter(SL1metaPrimitivesPerBX);
     auto filteredSL1MPs = filter(SL1metaPrimitives);
-    // auto filteredSL3MPs = filter(SL3metaPrimitivesPerBX);
     auto filteredSL3MPs = filter(SL3metaPrimitives);
 
     for (auto & mp: filteredSL1MPs)
@@ -63,27 +56,19 @@ void MPSLFilter::finish(){};
 ///////////////////////////
 ///  OTHER METHODS
 
-// std::vector<metaPrimitive> MPSLFilter::filter(std::map<int, std::vector<metaPrimitive>> mpsPerBX) {
 std::vector<metaPrimitive> MPSLFilter::filter(std::vector<metaPrimitive> mps) {
   std::map<int, valid_tp_arr_t> mp_valid_per_bx;
-  // for (auto &mp: mpsPerBX) {
   for (auto &mp: mps) {
     int BX = mp.t0 / 25;
     if (mp_valid_per_bx.find(BX) == mp_valid_per_bx.end())
         mp_valid_per_bx[BX] = valid_tp_arr_t(6);
 
-    // for (auto &mp : elem.second) {
       // is this mp getting killed?
-    auto dead = isDead(mp, mp_valid_per_bx);
-    // std::cout << mp.quality << " " << mp.t0 << " " << dead << std::endl;
     if (isDead(mp, mp_valid_per_bx)) continue;
     // if not, let's kill other mps
-    // auto index = killTps(mp, elem.first, mp_valid_per_bx);
     auto index = killTps(mp, BX, mp_valid_per_bx);
     if (index == -1) continue;
-    // mp_valid_per_bx[elem.first][index] = valid_tp_t({true, mp});
     mp_valid_per_bx[BX][index] = valid_tp_t({true, mp});
-    // }
   }
 
   std::vector<metaPrimitive> outTPs;
@@ -143,7 +128,6 @@ bool MPSLFilter::isDead(cmsdt::metaPrimitive mp, std::map<int, valid_tp_arr_t> t
 int MPSLFilter::smaller_chi2(cmsdt::metaPrimitive mp, cmsdt::metaPrimitive mp2) {
   auto chi2_1 = get_chi2(mp);
   auto chi2_2 = get_chi2(mp2);
-  // std::cout << mp.chi2 << " " << mp2.chi2 << " " << chi2_1 << " " << chi2_2 << std::endl;
   if (chi2_1 < chi2_2) return 0;
   return 1;
 }
@@ -158,26 +142,15 @@ int MPSLFilter::get_chi2(cmsdt::metaPrimitive mp) {
 
   std::vector<int> chi2_unsigned, chi2_unsigned_msb;
   vhdl_int_to_unsigned(chi2, chi2_unsigned);
-  // std::cout << chi2 << " ";
-  // for (auto &elem: chi2_unsigned)
-    // std::cout << elem;
-  // std::cout << std::endl;
 
   if (chi2_unsigned.size() > 2) {
     for (int i = (int) chi2_unsigned.size() - 1; i >= 2; i--) {
       if (chi2_unsigned[i] == 1) {
         vhdl_int_to_unsigned(i - 1, chi2_unsigned_msb);
-        // for (auto &elem: chi2_unsigned_msb)
-          // std::cout << elem;
-        // std::cout << std::endl;
 
         for (int j = i - 1; j > i - 3; j--) {
-          // chi2_unsigned_msb.push_back(chi2_unsigned[j]);
           chi2_unsigned_msb.insert(chi2_unsigned_msb.begin(), chi2_unsigned[j]);
         }
-        // for (auto &elem: chi2_unsigned_msb)
-          // std::cout << elem;
-        // std::cout << std::endl;
         return vhdl_unsigned_to_int(chi2_unsigned_msb);
       }
     }
@@ -196,7 +169,6 @@ int MPSLFilter::killTps(cmsdt::metaPrimitive mp, int bx, std::map<int, valid_tp_
       if (elem.second[i].valid == 1) {
         int isMatched = match(mp, elem.second[i].mp);
         if (isMatched == 2 || isMatched == 6) {
-          // std::cout << "Killer mp: " << mp.t0 << " Dead mp: " << elem.second[i].mp.t0 << std::endl;
           elem.second[i].valid = false;
           if (elem.first == bx && index_to_kill == -1) index_to_kill = i;
         }
@@ -255,8 +227,6 @@ int MPSLFilter::share_hit(cmsdt::metaPrimitive mp, cmsdt::metaPrimitive mp2) {
     if (tdc_mp2[i] > max_tdc_mp2)
       max_tdc_mp2 = tdc_mp2[i];
   }
-
-  // std::cout << mp.t0 / LHC_CLK_FREQ << " " << max_tdc_mp2 / LHC_CLK_FREQ << " " << mp2.t0 / LHC_CLK_FREQ << " " << max_tdc_mp / LHC_CLK_FREQ << std::endl;
 
   if (mp.t0 / LHC_CLK_FREQ + SLFILT_MAX_SEG1T0_TO_SEG2ARRIVAL < max_tdc_mp2 / LHC_CLK_FREQ
       || mp2.t0 / LHC_CLK_FREQ + SLFILT_MAX_SEG1T0_TO_SEG2ARRIVAL < max_tdc_mp / LHC_CLK_FREQ)

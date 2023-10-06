@@ -60,15 +60,6 @@ void LateralityCoarsedProvider::analyze(MuonPathPtr &inMPath, std::vector<lat_ve
     LogDebug("LateralityCoarsedProvider") << "DTp2:analyze \t\t\t\t starts";
   
   auto coarsified_times = coarsify_times(inMPath);
-  // std::cout << inMPath->cellLayout()[0] << " ";
-  // std::cout << inMPath->cellLayout()[1] << " ";
-  // std::cout << inMPath->cellLayout()[2] << " ";
-  // std::cout << inMPath->cellLayout()[3] << std::endl;
-
-  // std::cout << coarsified_times[0] << " ";
-  // std::cout << coarsified_times[1] << " ";
-  // std::cout << coarsified_times[2] << " ";
-  // std::cout << coarsified_times[3] << std::endl;
 
   for (auto & lat_combination: lat_combinations) {
     if (inMPath->missingLayer() == lat_combination.missing_layer &&
