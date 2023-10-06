@@ -5,7 +5,6 @@
 #include <vector>
 #include <cmath>
 
-
 // "à la vhdl" functions
 std::vector<int> vhdl_slice(std::vector<int> v, int upper, int lower);
 int vhdl_unsigned_to_int(std::vector<int> v);

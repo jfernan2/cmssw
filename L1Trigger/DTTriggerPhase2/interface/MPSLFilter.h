@@ -18,14 +18,11 @@
 struct valid_tp_t {
   bool valid;
   cmsdt::metaPrimitive mp;
-  valid_tp_t():
-    valid(false), mp(cmsdt::metaPrimitive()) {}
-  valid_tp_t(bool valid, cmsdt::metaPrimitive mp):
-    valid(valid), mp(mp) {}
+  valid_tp_t() : valid(false), mp(cmsdt::metaPrimitive()) {}
+  valid_tp_t(bool valid, cmsdt::metaPrimitive mp) : valid(valid), mp(mp) {}
 };
 
 using valid_tp_arr_t = std::vector<valid_tp_t>;
-
 
 class MPSLFilter : public MPFilter {
 public:
@@ -66,8 +63,6 @@ private:
   int match(cmsdt::metaPrimitive mp1, cmsdt::metaPrimitive mp2);
   int smaller_chi2(cmsdt::metaPrimitive mp, cmsdt::metaPrimitive mp2);
   int get_chi2(cmsdt::metaPrimitive mp);
-
-
 
   // Private attributes
   const bool debug_;

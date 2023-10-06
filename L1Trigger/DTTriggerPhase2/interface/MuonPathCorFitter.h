@@ -7,13 +7,13 @@
 // Previous definitions and declarations
 // ===============================================================================
 
-bool bxSort (const cmsdt::bx_sl_vector& vA, const cmsdt::bx_sl_vector& vB)
-{
+inline bool bxSort(const cmsdt::bx_sl_vector &vA, const cmsdt::bx_sl_vector &vB) {
   if (vA.bx > vB.bx)
     return true;
   else if (vA.bx == vB.bx)
     return (vA.sl > vB.sl);
-  else return false;
+  else
+    return false;
 }
 
 using mp_group = std::vector<cmsdt::metaPrimitive>;
@@ -26,8 +26,8 @@ class MuonPathCorFitter : public MuonPathFitter {
 public:
   // Constructors and destructor
   MuonPathCorFitter(const edm::ParameterSet &pset,
-                           edm::ConsumesCollector &iC,
-                           std::shared_ptr<GlobalCoordsObtainer> &globalcoordsobtainer);
+                    edm::ConsumesCollector &iC,
+                    std::shared_ptr<GlobalCoordsObtainer> &globalcoordsobtainer);
   ~MuonPathCorFitter() override;
 
   // Main methods
@@ -36,15 +36,15 @@ public:
            const edm::EventSetup &iEventSetup,
            MuonPathPtrs &inMpath,
            std::vector<cmsdt::metaPrimitive> &metaPrimitives) override{};
-  void run(edm::Event& iEvent,
-           const edm::EventSetup& iEventSetup,
-           MuonPathPtrs& inMpath,
-           std::vector<lat_vector>& lateralities,
-           std::vector<cmsdt::metaPrimitive>& metaPrimitives) override{};
-  virtual void run(edm::Event& iEvent,
-           const edm::EventSetup& iEventSetup,
-           std::vector<cmsdt::metaPrimitive>& inMPaths,
-           std::vector<cmsdt::metaPrimitive>& outMPaths) override;
+  void run(edm::Event &iEvent,
+           const edm::EventSetup &iEventSetup,
+           MuonPathPtrs &inMpath,
+           std::vector<lat_vector> &lateralities,
+           std::vector<cmsdt::metaPrimitive> &metaPrimitives) override{};
+  void run(edm::Event &iEvent,
+           const edm::EventSetup &iEventSetup,
+           std::vector<cmsdt::metaPrimitive> &inMPaths,
+           std::vector<cmsdt::metaPrimitive> &outMPaths) override;
   void run(edm::Event &iEvent,
            const edm::EventSetup &iEventSetup,
            MuonPathPtrs &inMpath,

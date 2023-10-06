@@ -41,9 +41,9 @@ void TrapezoidalGrouping::initialise(const edm::EventSetup &iEventSetup) {
 }
 
 void TrapezoidalGrouping::run(Event &iEvent,
-                          const EventSetup &iEventSetup,
-                          const DTDigiCollection &digis,
-                          MuonPathPtrs &mpaths) {
+                              const EventSetup &iEventSetup,
+                              const DTDigiCollection &digis,
+                              MuonPathPtrs &mpaths) {
   //   This function returns the analyzable mpath collection back to the the main function
   //   so it can be fitted. This is in fact doing the so-called grouping.
   for (int supLayer = 0; supLayer < NUM_SUPERLAYERS; supLayer++) {  // for each SL:
@@ -64,7 +64,8 @@ void TrapezoidalGrouping::run(Event &iEvent,
         // 15 (1, 6) <-> 17 (1, 8)
         // we leave it hard-coded here, could be moved somewhere else
         if (layer_to_pivot == 1 || layer_to_pivot == 2) {
-          if (itask == 14 || itask == 17) continue;
+          if (itask == 14 || itask == 17)
+            continue;
         }
 
         auto task = task_list[itask];
@@ -81,21 +82,24 @@ void TrapezoidalGrouping::run(Event &iEvent,
           auto vertical_shift = trapezoid_vertical_mapping[layer_to_pivot][cell];
           auto horizontal_shift = trapezoid_horizontal_mapping[layer_to_pivot][cell];
           if (channel_to_pivot + horizontal_shift >= 0 && channel_to_pivot + horizontal_shift < NUM_CH_PER_LAYER) {
-            tmp_mpaths = group_hits(hit, tmp_mpaths, channelIn_[layer_to_pivot + vertical_shift][channel_to_pivot + horizontal_shift], hits_in_trapezoid);
+            tmp_mpaths = group_hits(hit,
+                                    tmp_mpaths,
+                                    channelIn_[layer_to_pivot + vertical_shift][channel_to_pivot + horizontal_shift],
+                                    hits_in_trapezoid);
           }
           mpath_cells_per_task.pop();
-          for (auto tmp_mpath: tmp_mpaths) {
+          for (const auto &tmp_mpath : tmp_mpaths) {
             mpath_cells_per_task.push(std::make_pair(tmp_mpath, task_index + 1));
           }
           while (!mpath_cells_per_task.empty()) {
-            if (mpath_cells_per_task.top().second == (int) task.size()) {
+            if (mpath_cells_per_task.top().second == (int)task.size()) {
               task_mpaths.push_back(mpath_cells_per_task.top().first);
               mpath_cells_per_task.pop();
-            } else break;
+            } else
+              break;
           }
-
         }
-        for (auto & task_mpath: task_mpaths) {
+        for (auto &task_mpath : task_mpaths) {
           hit_mpaths.push_back(task_mpath);
           hit_tasks.push_back(itask);
         }
@@ -111,21 +115,20 @@ void TrapezoidalGrouping::run(Event &iEvent,
 
           // check if the task has a missing layer associated
           // if it does, we add a dummy hit in the missing layer
-          // if it does not, we check that we actually have 4 present hits; 
+          // if it does not, we check that we actually have 4 present hits;
           // if not, we skip the mpath.
           if (MISSING_LAYER_LAYOUTS_PER_TASK[layer_to_pivot][itask] != -1) {
             auto dtpAux = DTPrimitive();
             dtpAux.setTDCTimeStamp(-1);
             dtpAux.setChannelId(-1);
-            dtpAux.setLayerId(MISSING_LAYER_LAYOUTS_PER_TASK[layer_to_pivot][itask]); //  L=0,1,2,3
+            dtpAux.setLayerId(MISSING_LAYER_LAYOUTS_PER_TASK[layer_to_pivot][itask]);  //  L=0,1,2,3
             dtpAux.setSuperLayerId(hit.superLayerId());
             dtpAux.setCameraId(-1);
             ptrPrimitive.push_back(dtpAux);
-          } else { // we have no missing hits, it must be a 4-hit TP.
+          } else {  // we have no missing hits, it must be a 4-hit TP.
             if (ptrPrimitive.size() < 4)
               continue;
           }
-
 
           // sort the hits by layer, so they are included ordered in the MuonPath object
           std::stable_sort(ptrPrimitive.begin(), ptrPrimitive.end(), hitLayerSort);
@@ -162,7 +165,7 @@ void TrapezoidalGrouping::setInChannels(const DTDigiCollection *digis, int sl) {
     const DTLayerId dtLId = dtLayerId_It.first;
 
     if (dtLId.superlayer() != sl + 1)
-          continue;  //skip digis not in SL...
+      continue;  //skip digis not in SL...
 
     for (DTDigiCollection::const_iterator digiIt = (dtLayerId_It.second).first; digiIt != (dtLayerId_It.second).second;
          ++digiIt) {
@@ -172,8 +175,8 @@ void TrapezoidalGrouping::setInChannels(const DTDigiCollection *digis, int sl) {
       int digiTIMEPhase2 = digiTIME;
 
       if (debug_)
-        LogDebug("TrapezoidalGrouping") << "[TrapezoidalGrouping::setInChannels] SL" << sl << " L" << layer << " : " << wire
-                                    << " " << digiTIMEPhase2;
+        LogDebug("TrapezoidalGrouping") << "[TrapezoidalGrouping::setInChannels] SL" << sl << " L" << layer << " : "
+                                        << wire << " " << digiTIMEPhase2;
       auto dtpAux = DTPrimitive();
       dtpAux.setTDCTimeStamp(digiTIMEPhase2);
       dtpAux.setChannelId(wire);
@@ -194,17 +197,19 @@ void TrapezoidalGrouping::setInChannels(const DTDigiCollection *digis, int sl) {
   std::stable_sort(all_hits.begin(), all_hits.end(), hitTimeSort);
 }
 
-std::vector<DTPrimitives> TrapezoidalGrouping::group_hits(DTPrimitive pivot_hit, std::vector<DTPrimitives> input_paths, DTPrimitives hits_per_cell, DTPrimitives &hits_in_trapezoid) {
+std::vector<DTPrimitives> TrapezoidalGrouping::group_hits(DTPrimitive pivot_hit,
+                                                          std::vector<DTPrimitives> input_paths,
+                                                          DTPrimitives hits_per_cell,
+                                                          DTPrimitives &hits_in_trapezoid) {
   std::vector<DTPrimitives> output_paths;
-  for (auto & hit : hits_per_cell) {
+  for (auto &hit : hits_per_cell) {
     int hit_bx = hit.tdcTimeStamp() / LHC_CLK_FREQ;
-    int pivot_hit_bx = pivot_hit.tdcTimeStamp() / LHC_CLK_FREQ; 
+    int pivot_hit_bx = pivot_hit.tdcTimeStamp() / LHC_CLK_FREQ;
 
     // do not consider hits that arrived later than the pivot hit or that already left
     // the allowed frame (BX) window
 
-    if (hitTimeSort(pivot_hit, hit) ||
-        (pivot_hit_bx / BX_PER_FRAME) - (hit_bx / BX_PER_FRAME) > MAX_FRAME_DIF)
+    if (hitTimeSort(pivot_hit, hit) || (pivot_hit_bx / BX_PER_FRAME) - (hit_bx / BX_PER_FRAME) > MAX_FRAME_DIF)
       continue;
 
     // limit the number of hits in the trapezoid to PATHFINDER_INPUT_HITS_LIMIT
@@ -216,12 +221,14 @@ std::vector<DTPrimitives> TrapezoidalGrouping::group_hits(DTPrimitive pivot_hit,
       return empty_paths;
     }
 
-    for (auto & input_path : input_paths) {
+    for (auto &input_path : input_paths) {
       auto tmp_path = input_path;
       tmp_path.push_back(hit);
       output_paths.push_back(tmp_path);
     }
   }
-  if (output_paths.size() == 0) return input_paths;
-  else return output_paths;
+  if (output_paths.empty())
+    return input_paths;
+  else
+    return output_paths;
 }

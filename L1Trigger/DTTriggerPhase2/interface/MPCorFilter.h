@@ -21,14 +21,12 @@ struct valid_cor_tp_t {
   int coarsed_t0;
   int coarsed_pos;
   int coarsed_slope;
-  valid_cor_tp_t():
-    valid(false), mp(cmsdt::metaPrimitive()), coarsed_t0(-1), coarsed_pos(-1), coarsed_slope(-1) {}
-  valid_cor_tp_t(bool valid, cmsdt::metaPrimitive mp, int coarsed_t0, int coarsed_pos, int coarsed_slope):
-    valid(valid), mp(mp), coarsed_t0(coarsed_t0), coarsed_pos(coarsed_pos), coarsed_slope(coarsed_slope) {}
+  valid_cor_tp_t() : valid(false), mp(cmsdt::metaPrimitive()), coarsed_t0(-1), coarsed_pos(-1), coarsed_slope(-1) {}
+  valid_cor_tp_t(bool valid, cmsdt::metaPrimitive mp, int coarsed_t0, int coarsed_pos, int coarsed_slope)
+      : valid(valid), mp(mp), coarsed_t0(coarsed_t0), coarsed_pos(coarsed_pos), coarsed_slope(coarsed_slope) {}
 };
 
 using valid_cor_tp_arr_t = std::vector<valid_cor_tp_t>;
-
 
 class MPCorFilter : public MPFilter {
 public:
@@ -61,16 +59,15 @@ public:
 
 private:
   // Private methods
-  std::vector<cmsdt::metaPrimitive> filter(
-    std::vector<cmsdt::metaPrimitive> SL1mps,
-    // std::map<int, std::vector<cmsdt::metaPrimitive>> SL1mpsPerBX,
-    std::vector<cmsdt::metaPrimitive> SL3mps,
-    // std::map<int, std::vector<cmsdt::metaPrimitive>> SL3mpsPerBX,
-    std::vector<cmsdt::metaPrimitive> Cormps);
-    // std::map<int, std::vector<cmsdt::metaPrimitive>> CormpsPerBX);
+  std::vector<cmsdt::metaPrimitive> filter(std::vector<cmsdt::metaPrimitive> SL1mps,
+                                           // std::map<int, std::vector<cmsdt::metaPrimitive>> SL1mpsPerBX,
+                                           std::vector<cmsdt::metaPrimitive> SL3mps,
+                                           // std::map<int, std::vector<cmsdt::metaPrimitive>> SL3mpsPerBX,
+                                           std::vector<cmsdt::metaPrimitive> Cormps);
+  // std::map<int, std::vector<cmsdt::metaPrimitive>> CormpsPerBX);
   std::vector<int> coarsify(cmsdt::metaPrimitive mp, int sl);
   bool isDead(cmsdt::metaPrimitive mp, std::vector<int> coarsed, std::map<int, valid_cor_tp_arr_t> tps_per_bx);
-  int killTps(cmsdt::metaPrimitive mp, std::vector<int> coarsed,int bx, std::map<int, valid_cor_tp_arr_t> &tps_per_bx);
+  int killTps(cmsdt::metaPrimitive mp, std::vector<int> coarsed, int bx, std::map<int, valid_cor_tp_arr_t> &tps_per_bx);
   int match(cmsdt::metaPrimitive mp, std::vector<int> coarsed, valid_cor_tp_t valid_cor_tp2);
   int get_chi2(cmsdt::metaPrimitive mp);
 

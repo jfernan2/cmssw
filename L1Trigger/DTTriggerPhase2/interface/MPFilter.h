@@ -52,7 +52,7 @@ public:
   // Other public methods
 
   // Public attributes
-    
+
   // max drift velocity
   edm::FileInPath maxdrift_filename_;
   int maxdriftinfo_[5][4][14];

@@ -18,12 +18,10 @@ struct lat_coarsed_combination {
 // Class declarations
 // ===============================================================================
 
-
 class LateralityCoarsedProvider : public LateralityProvider {
 public:
   // Constructors and destructor
-  LateralityCoarsedProvider(const edm::ParameterSet &pset,
-                          edm::ConsumesCollector &iC);
+  LateralityCoarsedProvider(const edm::ParameterSet &pset, edm::ConsumesCollector &iC);
   ~LateralityCoarsedProvider() override;
 
   // Main methods
@@ -31,7 +29,7 @@ public:
   void run(edm::Event &iEvent,
            const edm::EventSetup &iEventSetup,
            MuonPathPtrs &inMpath,
-           std::vector<lat_vector>& lateralities) override;
+           std::vector<lat_vector> &lateralities) override;
 
   void finish() override;
 
@@ -39,13 +37,12 @@ public:
 
 private:
   // Private methods
-  void analyze(MuonPathPtr &inMPath, std::vector<lat_vector>& lateralities);
+  void analyze(MuonPathPtr &inMPath, std::vector<lat_vector> &lateralities);
   std::vector<short> coarsify_times(MuonPathPtr &inMPath);
   void fill_lat_combinations();
   // Private attributes
   const bool debug_;
   std::vector<lat_coarsed_combination> lat_combinations;
-
 };
 
 #endif

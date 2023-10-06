@@ -374,7 +374,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   digiMap.clear();
 
   if (dump_) {
-    for (auto & ch_muonpaths: muonpaths) {
+    for (auto& ch_muonpaths : muonpaths) {
       for (unsigned int i = 0; i < ch_muonpaths.second.size(); i++) {
         stringstream ss;
         ss << iEvent.id().event() << "      mpath " << i << ": ";
@@ -391,7 +391,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   std::map<int, std::vector<lat_vector>> lateralities;
   if (!output_mixer_) {
-    for (auto & ch_muonpaths: muonpaths) {
+    for (auto& ch_muonpaths : muonpaths) {
       if (algo_ == Standard) {
         latprovider_->run(iEvent, iEventSetup, ch_muonpaths.second, lateralities[ch_muonpaths.first]);
       }
@@ -400,7 +400,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   // FILTER GROUPING
   std::map<int, MuonPathPtrs> filteredmuonpaths;
-  for (auto & ch_muonpaths: muonpaths) {
+  for (auto& ch_muonpaths : muonpaths) {
     if (algo_ == Standard) {
       mpathredundantfilter_->run(iEvent, iEventSetup, ch_muonpaths.second, filteredmuonpaths[ch_muonpaths.first]);
     } else {
@@ -409,7 +409,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   }
 
   if (dump_) {
-    for (auto & ch_filteredmuonpaths: filteredmuonpaths) {
+    for (auto& ch_filteredmuonpaths : filteredmuonpaths) {
       for (unsigned int i = 0; i < ch_filteredmuonpaths.second.size(); i++) {
         stringstream ss;
         ss << iEvent.id().event() << " filt. mpath " << i << ": ";
@@ -429,10 +429,10 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   ///////////////////////////////////////////
 
   if (debug_) {
-    for (auto & ch_muonpaths: muonpaths) {
+    for (auto& ch_muonpaths : muonpaths) {
       LogDebug("DTTrigPhase2Prod") << "MUON PATHS found: " << ch_muonpaths.second.size() << " ("
-                                   << filteredmuonpaths[ch_muonpaths.first].size()
-                                   << ") in event " << iEvent.id().event();
+                                   << filteredmuonpaths[ch_muonpaths.first].size() << ") in event "
+                                   << iEvent.id().event();
     }
   }
   if (debug_)
@@ -442,12 +442,16 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   if (algo_ == Standard) {
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "Fitting 1SL ";
-    for (auto & ch_muonpaths: muonpaths) { // FIXME, do we need filtered muonpaths?
+    for (auto& ch_muonpaths : muonpaths) {  // FIXME, do we need filtered muonpaths?
       if (!output_mixer_ && !output_latpredictor_)
-        mpathanalyzer_->run(iEvent, iEventSetup, ch_muonpaths.second, lateralities[ch_muonpaths.first], metaPrimitives[ch_muonpaths.first]);
+        mpathanalyzer_->run(iEvent,
+                            iEventSetup,
+                            ch_muonpaths.second,
+                            lateralities[ch_muonpaths.first],
+                            metaPrimitives[ch_muonpaths.first]);
       else if (output_mixer_) {
-        for (auto &inMPath: ch_muonpaths.second) {
-          auto sl = inMPath->primitive(0)->superLayerId(); // 0, 1, 2
+        for (auto& inMPath : ch_muonpaths.second) {
+          auto sl = inMPath->primitive(0)->superLayerId();  // 0, 1, 2
           int selected_lay = 1;
           if (inMPath->primitive(0)->tdcTimeStamp() != -1)
             selected_lay = 0;
@@ -456,162 +460,161 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
           DTSuperLayerId MuonPathSLId(dtDumlayerId.wheel(), dtDumlayerId.station(), dtDumlayerId.sector(), sl + 1);
           if (sl == 0)
             metaPrimitives[ch_muonpaths.first].emplace_back(metaPrimitive({MuonPathSLId.rawId(),
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   inMPath->primitive(0)->channelId(),
-                                                   inMPath->primitive(0)->tdcTimeStamp(),
-                                                   -1,
-                                                   inMPath->primitive(1)->channelId(),
-                                                   inMPath->primitive(1)->tdcTimeStamp(),
-                                                   -1,
-                                                   inMPath->primitive(2)->channelId(),
-                                                   inMPath->primitive(2)->tdcTimeStamp(),
-                                                   -1,
-                                                   inMPath->primitive(3)->channelId(),
-                                                   inMPath->primitive(3)->tdcTimeStamp(),
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1}));
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           inMPath->primitive(0)->channelId(),
+                                                                           inMPath->primitive(0)->tdcTimeStamp(),
+                                                                           -1,
+                                                                           inMPath->primitive(1)->channelId(),
+                                                                           inMPath->primitive(1)->tdcTimeStamp(),
+                                                                           -1,
+                                                                           inMPath->primitive(2)->channelId(),
+                                                                           inMPath->primitive(2)->tdcTimeStamp(),
+                                                                           -1,
+                                                                           inMPath->primitive(3)->channelId(),
+                                                                           inMPath->primitive(3)->tdcTimeStamp(),
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1}));
           else
             metaPrimitives[ch_muonpaths.first].emplace_back(metaPrimitive({MuonPathSLId.rawId(),
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   -1,
-                                                   inMPath->primitive(0)->channelId(),
-                                                   inMPath->primitive(0)->tdcTimeStamp(),
-                                                   -1,
-                                                   inMPath->primitive(1)->channelId(),
-                                                   inMPath->primitive(1)->tdcTimeStamp(),
-                                                   -1,
-                                                   inMPath->primitive(2)->channelId(),
-                                                   inMPath->primitive(2)->tdcTimeStamp(),
-                                                   -1,
-                                                   inMPath->primitive(3)->channelId(),
-                                                   inMPath->primitive(3)->tdcTimeStamp(),
-                                                   -1,
-                                                   -1}));
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           -1,
+                                                                           inMPath->primitive(0)->channelId(),
+                                                                           inMPath->primitive(0)->tdcTimeStamp(),
+                                                                           -1,
+                                                                           inMPath->primitive(1)->channelId(),
+                                                                           inMPath->primitive(1)->tdcTimeStamp(),
+                                                                           -1,
+                                                                           inMPath->primitive(2)->channelId(),
+                                                                           inMPath->primitive(2)->tdcTimeStamp(),
+                                                                           -1,
+                                                                           inMPath->primitive(3)->channelId(),
+                                                                           inMPath->primitive(3)->tdcTimeStamp(),
+                                                                           -1,
+                                                                           -1}));
         }
-      }
-      else if (output_latpredictor_) {
+      } else if (output_latpredictor_) {
         int imp = -1;
-        for (auto &inMPath: ch_muonpaths.second) {
+        for (auto& inMPath : ch_muonpaths.second) {
           imp++;
-          auto sl = inMPath->primitive(0)->superLayerId(); // 0, 1, 2
+          auto sl = inMPath->primitive(0)->superLayerId();  // 0, 1, 2
           int selected_lay = 1;
           if (inMPath->primitive(0)->tdcTimeStamp() != -1)
             selected_lay = 0;
           int dumLayId = inMPath->primitive(selected_lay)->cameraId();
           auto dtDumlayerId = DTLayerId(dumLayId);
           DTSuperLayerId MuonPathSLId(dtDumlayerId.wheel(), dtDumlayerId.station(), dtDumlayerId.sector(), sl + 1);
-          for (auto &latcomb: lateralities[ch_muonpaths.first][imp]) {
+          for (auto& latcomb : lateralities[ch_muonpaths.first][imp]) {
             if (sl == 0)
               metaPrimitives[ch_muonpaths.first].emplace_back(metaPrimitive({MuonPathSLId.rawId(),
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     inMPath->primitive(0)->channelId(),
-                                                     inMPath->primitive(0)->tdcTimeStamp(),
-                                                     latcomb[0],
-                                                     inMPath->primitive(1)->channelId(),
-                                                     inMPath->primitive(1)->tdcTimeStamp(),
-                                                     latcomb[1],
-                                                     inMPath->primitive(2)->channelId(),
-                                                     inMPath->primitive(2)->tdcTimeStamp(),
-                                                     latcomb[2],
-                                                     inMPath->primitive(3)->channelId(),
-                                                     inMPath->primitive(3)->tdcTimeStamp(),
-                                                     latcomb[3],
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1}));
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             inMPath->primitive(0)->channelId(),
+                                                                             inMPath->primitive(0)->tdcTimeStamp(),
+                                                                             latcomb[0],
+                                                                             inMPath->primitive(1)->channelId(),
+                                                                             inMPath->primitive(1)->tdcTimeStamp(),
+                                                                             latcomb[1],
+                                                                             inMPath->primitive(2)->channelId(),
+                                                                             inMPath->primitive(2)->tdcTimeStamp(),
+                                                                             latcomb[2],
+                                                                             inMPath->primitive(3)->channelId(),
+                                                                             inMPath->primitive(3)->tdcTimeStamp(),
+                                                                             latcomb[3],
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1}));
             else
               metaPrimitives[ch_muonpaths.first].emplace_back(metaPrimitive({MuonPathSLId.rawId(),
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     -1,
-                                                     inMPath->primitive(0)->channelId(),
-                                                     inMPath->primitive(0)->tdcTimeStamp(),
-                                                     latcomb[0],
-                                                     inMPath->primitive(1)->channelId(),
-                                                     inMPath->primitive(1)->tdcTimeStamp(),
-                                                     latcomb[1],
-                                                     inMPath->primitive(2)->channelId(),
-                                                     inMPath->primitive(2)->tdcTimeStamp(),
-                                                     latcomb[2],
-                                                     inMPath->primitive(3)->channelId(),
-                                                     inMPath->primitive(3)->tdcTimeStamp(),
-                                                     latcomb[3],
-                                                     -1}));
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             -1,
+                                                                             inMPath->primitive(0)->channelId(),
+                                                                             inMPath->primitive(0)->tdcTimeStamp(),
+                                                                             latcomb[0],
+                                                                             inMPath->primitive(1)->channelId(),
+                                                                             inMPath->primitive(1)->tdcTimeStamp(),
+                                                                             latcomb[1],
+                                                                             inMPath->primitive(2)->channelId(),
+                                                                             inMPath->primitive(2)->tdcTimeStamp(),
+                                                                             latcomb[2],
+                                                                             inMPath->primitive(3)->channelId(),
+                                                                             inMPath->primitive(3)->tdcTimeStamp(),
+                                                                             latcomb[3],
+                                                                             -1}));
           }
         }
       }
@@ -620,7 +623,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     // implementation for advanced (2SL) grouping, no filter required..
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "Fitting 2SL at once ";
-    for (auto & ch_muonpaths: muonpaths) {
+    for (auto& ch_muonpaths : muonpaths) {
       mpathanalyzer_->run(iEvent, iEventSetup, ch_muonpaths.second, outmpaths[ch_muonpaths.first]);
     }
   }
@@ -628,15 +631,18 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   skip_processing_ = skip_processing_ || output_slfitter_;
 
   if (dump_) {
-    for (auto & ch_outmpaths: outmpaths) {
+    for (auto& ch_outmpaths : outmpaths) {
       for (unsigned int i = 0; i < ch_outmpaths.second.size(); i++) {
-        LogInfo("DTTrigPhase2Prod") << iEvent.id().event() << " mp " << i << ": " << ch_outmpaths.second.at(i)->bxTimeValue() << " "
-                                    << ch_outmpaths.second.at(i)->horizPos() << " " << ch_outmpaths.second.at(i)->tanPhi() << " "
-                                    << ch_outmpaths.second.at(i)->phi() << " " << ch_outmpaths.second.at(i)->phiB() << " "
-                                    << ch_outmpaths.second.at(i)->quality() << " " << ch_outmpaths.second.at(i)->chiSquare();
+        LogInfo("DTTrigPhase2Prod") << iEvent.id().event() << " mp " << i << ": "
+                                    << ch_outmpaths.second.at(i)->bxTimeValue() << " "
+                                    << ch_outmpaths.second.at(i)->horizPos() << " "
+                                    << ch_outmpaths.second.at(i)->tanPhi() << " " << ch_outmpaths.second.at(i)->phi()
+                                    << " " << ch_outmpaths.second.at(i)->phiB() << " "
+                                    << ch_outmpaths.second.at(i)->quality() << " "
+                                    << ch_outmpaths.second.at(i)->chiSquare();
       }
     }
-    for (auto & ch_metaPrimitives: metaPrimitives) {
+    for (auto& ch_metaPrimitives : metaPrimitives) {
       for (unsigned int i = 0; i < ch_metaPrimitives.second.size(); i++) {
         stringstream ss;
         ss << iEvent.id().event() << " mp " << i << ": ";
@@ -648,21 +654,21 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   muonpaths.clear();
   filteredmuonpaths.clear();
 
-
   /////////////////////////////////////
   //// CONFIRMATION:
   /////////////////////////////////////
 
   std::map<int, std::vector<metaPrimitive>> confirmedMetaPrimitives;
-  for (auto & ch_metaPrimitives: metaPrimitives) {
+  for (auto& ch_metaPrimitives : metaPrimitives) {
     if (!skip_processing_ && allow_confirmation_)
-      mpathconfirmator_->run(iEvent, iEventSetup, ch_metaPrimitives.second, dtdigis, confirmedMetaPrimitives[ch_metaPrimitives.first]);
+      mpathconfirmator_->run(
+          iEvent, iEventSetup, ch_metaPrimitives.second, dtdigis, confirmedMetaPrimitives[ch_metaPrimitives.first]);
     else
-      for (auto &mp: ch_metaPrimitives.second) {
+      for (auto& mp : ch_metaPrimitives.second) {
         confirmedMetaPrimitives[ch_metaPrimitives.first].push_back(mp);
       }
   }
-  
+
   metaPrimitives.clear();
   skip_processing_ = skip_processing_ || output_confirmed_;
 
@@ -675,16 +681,19 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   std::map<int, std::vector<metaPrimitive>> filteredMetaPrimitives;
   if (algo_ == Standard)
-    for (auto & ch_confirmedMetaPrimitives: confirmedMetaPrimitives) {
+    for (auto& ch_confirmedMetaPrimitives : confirmedMetaPrimitives) {
       if (!skip_processing_)
-        mpathqualityenhancer_->run(iEvent, iEventSetup, ch_confirmedMetaPrimitives.second, filteredMetaPrimitives[ch_confirmedMetaPrimitives.first]);
+        mpathqualityenhancer_->run(iEvent,
+                                   iEventSetup,
+                                   ch_confirmedMetaPrimitives.second,
+                                   filteredMetaPrimitives[ch_confirmedMetaPrimitives.first]);
       else
-        for (auto &mp: ch_confirmedMetaPrimitives.second) {
+        for (auto& mp : ch_confirmedMetaPrimitives.second) {
           filteredMetaPrimitives[ch_confirmedMetaPrimitives.first].push_back(mp);
         }
     }
   if (dump_) {
-    for (auto & ch_filteredMetaPrimitives: filteredMetaPrimitives) {
+    for (auto& ch_filteredMetaPrimitives : filteredMetaPrimitives) {
       for (unsigned int i = 0; i < ch_filteredMetaPrimitives.second.size(); i++) {
         stringstream ss;
         ss << iEvent.id().event() << " filtered mp " << i << ": ";
@@ -697,7 +706,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   confirmedMetaPrimitives.clear();
 
   if (debug_)
-    for (auto & ch_filteredMetaPrimitives: filteredMetaPrimitives) {
+    for (auto& ch_filteredMetaPrimitives : filteredMetaPrimitives) {
       LogDebug("DTTrigPhase2Prod") << "DTp2 in event:" << iEvent.id().event() << " we found "
                                    << ch_filteredMetaPrimitives.second.size() << " filteredMetaPrimitives (superlayer)"
                                    << std::endl;
@@ -705,23 +714,25 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   if (debug_)
     LogDebug("DTTrigPhase2Prod") << "filteredMetaPrimitives: starting correlations" << std::endl;
 
-
   /////////////////////////////////////
   //// CORRELATION:
   /////////////////////////////////////
 
   std::map<int, std::vector<metaPrimitive>> correlatedMetaPrimitives;
   if (algo_ == Standard) {
-    for (auto & ch_filteredMetaPrimitives: filteredMetaPrimitives) {
+    for (auto& ch_filteredMetaPrimitives : filteredMetaPrimitives) {
       if (!skip_processing_)
-        mpathassociator_->run(iEvent, iEventSetup, ch_filteredMetaPrimitives.second, correlatedMetaPrimitives[ch_filteredMetaPrimitives.first]);
+        mpathassociator_->run(iEvent,
+                              iEventSetup,
+                              ch_filteredMetaPrimitives.second,
+                              correlatedMetaPrimitives[ch_filteredMetaPrimitives.first]);
       else
-        for (auto &mp: ch_filteredMetaPrimitives.second) {
+        for (auto& mp : ch_filteredMetaPrimitives.second) {
           correlatedMetaPrimitives[ch_filteredMetaPrimitives.first].push_back(mp);
         }
     }
   } else {
-    for (auto & ch_outmpaths: outmpaths) {
+    for (auto& ch_outmpaths : outmpaths) {
       for (const auto& muonpath : ch_outmpaths.second) {
         correlatedMetaPrimitives[ch_outmpaths.first].emplace_back(muonpath->rawId(),
                                                                   (double)muonpath->bxTimeValue(),
@@ -764,16 +775,16 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   skip_processing_ = skip_processing_ || output_matcher_;
 
   if (debug_)
-    for (auto & ch_correlatedMetaPrimitives: correlatedMetaPrimitives) {
+    for (auto& ch_correlatedMetaPrimitives : correlatedMetaPrimitives) {
       LogDebug("DTTrigPhase2Prod") << "DTp2 in event:" << iEvent.id().event() << " we found "
-                                 << ch_correlatedMetaPrimitives.second.size() << " correlatedMetPrimitives (chamber)";
+                                   << ch_correlatedMetaPrimitives.second.size() << " correlatedMetPrimitives (chamber)";
     }
   if (dump_) {
-    for (auto & ch_correlatedMetaPrimitives: correlatedMetaPrimitives) {
+    for (auto& ch_correlatedMetaPrimitives : correlatedMetaPrimitives) {
       LogDebug("DTTrigPhase2Prod") << "DTp2 in event:" << iEvent.id().event() << " we found "
-                                 << ch_correlatedMetaPrimitives.second.size() << " correlatedMetPrimitives (chamber)";
+                                   << ch_correlatedMetaPrimitives.second.size() << " correlatedMetPrimitives (chamber)";
     }
-    for (auto & ch_correlatedMetaPrimitives: correlatedMetaPrimitives) {
+    for (auto& ch_correlatedMetaPrimitives : correlatedMetaPrimitives) {
       for (unsigned int i = 0; i < ch_correlatedMetaPrimitives.second.size(); i++) {
         stringstream ss;
         ss << iEvent.id().event() << " correlated mp " << i << ": ";
@@ -785,25 +796,25 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   // Correlated Filtering
   std::map<int, std::vector<metaPrimitive>> filtCorrelatedMetaPrimitives;
   if (algo_ == Standard) {
-    for (auto & ch_filteredMetaPrimitives: filteredMetaPrimitives) {
+    for (auto& ch_filteredMetaPrimitives : filteredMetaPrimitives) {
       if (!skip_processing_)
-        mpathcorfilter_->run(iEvent, iEventSetup,
-          ch_filteredMetaPrimitives.second,
-          correlatedMetaPrimitives[ch_filteredMetaPrimitives.first],
-          filtCorrelatedMetaPrimitives[ch_filteredMetaPrimitives.first]
-        );
+        mpathcorfilter_->run(iEvent,
+                             iEventSetup,
+                             ch_filteredMetaPrimitives.second,
+                             correlatedMetaPrimitives[ch_filteredMetaPrimitives.first],
+                             filtCorrelatedMetaPrimitives[ch_filteredMetaPrimitives.first]);
       else {
-        for (auto &mp: ch_filteredMetaPrimitives.second) {
+        for (auto& mp : ch_filteredMetaPrimitives.second) {
           filtCorrelatedMetaPrimitives[ch_filteredMetaPrimitives.first].push_back(mp);
         }
         if (output_matcher_)
-          for (auto &mp: correlatedMetaPrimitives[ch_filteredMetaPrimitives.first]) {
+          for (auto& mp : correlatedMetaPrimitives[ch_filteredMetaPrimitives.first]) {
             filtCorrelatedMetaPrimitives[ch_filteredMetaPrimitives.first].push_back(mp);
           }
       }
     }
   }
-  
+
   correlatedMetaPrimitives.clear();
   filteredMetaPrimitives.clear();
 
@@ -819,7 +830,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   if (useRPC_) {
     rpc_integrator_->initialise(iEventSetup, shift_back);
     rpc_integrator_->prepareMetaPrimitives(rpcRecHits);
-    for (auto & ch_correlatedMetaPrimitives: filtCorrelatedMetaPrimitives) {
+    for (auto& ch_correlatedMetaPrimitives : filtCorrelatedMetaPrimitives) {
       rpc_integrator_->matchWithDTAndUseRPCTime(ch_correlatedMetaPrimitives.second);  // Probably this is a FIXME
     }
     rpc_integrator_->makeRPCOnlySegments();
@@ -835,11 +846,11 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   // Assigning index value
   if (!skip_processing_)
-    for (auto & ch_correlatedMetaPrimitives: filtCorrelatedMetaPrimitives) {
+    for (auto& ch_correlatedMetaPrimitives : filtCorrelatedMetaPrimitives) {
       assignIndex(ch_correlatedMetaPrimitives.second);
     }
 
-  for (auto & ch_correlatedMetaPrimitives: filtCorrelatedMetaPrimitives) {
+  for (auto& ch_correlatedMetaPrimitives : filtCorrelatedMetaPrimitives) {
     for (const auto& metaPrimitiveIt : ch_correlatedMetaPrimitives.second) {
       DTChamberId chId(metaPrimitiveIt.rawId);
       DTSuperLayerId slId(metaPrimitiveIt.rawId);
@@ -864,7 +875,8 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
           sl = 3;
       }
 
-      float tp_t0 = (metaPrimitiveIt.t0 - shift_back * LHC_CLK_FREQ) * ((float) TIME_TO_TDC_COUNTS / (float) LHC_CLK_FREQ);
+      float tp_t0 =
+          (metaPrimitiveIt.t0 - shift_back * LHC_CLK_FREQ) * ((float)TIME_TO_TDC_COUNTS / (float)LHC_CLK_FREQ);
 
       if (debug_)
         LogDebug("DTTrigPhase2Prod") << "pushing back phase-2 dataformat carlo-federica dataformat";
@@ -901,18 +913,18 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
           // phiTP (extended DF)
           outExtP2Ph.emplace_back(
               L1Phase2MuDTExtPhDigi((int)round(metaPrimitiveIt.t0 / (float)LHC_CLK_FREQ) - shift_back,
-                                    chId.wheel(),                                                // uwh   (m_wheel)
-                                    sectorTP,                                                    // usc   (m_sector)
-                                    chId.station(),                                              // ust   (m_station)
-                                    sl,                                                          // ust   (m_station)
-                                    (int)round(metaPrimitiveIt.phi * PHIRES_CONV),               // uphi  (m_phiAngle)
-                                    (int)round(metaPrimitiveIt.phiB * PHIBRES_CONV),             // uphib (m_phiBending)
-                                    metaPrimitiveIt.quality,                                     // uqua  (m_qualityCode)
-                                    metaPrimitiveIt.index,                                       // uind  (m_segmentIndex)
-                                    tp_t0,                                                       // ut0   (m_t0Segment)
-                                    (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
-                                    (int)round(metaPrimitiveIt.x * 1000),                        // ux    (m_xLocal)
-                                    (int)round(metaPrimitiveIt.tanPhi * 1000),                   // utan  (m_tanPsi)
+                                    chId.wheel(),                                           // uwh   (m_wheel)
+                                    sectorTP,                                               // usc   (m_sector)
+                                    chId.station(),                                         // ust   (m_station)
+                                    sl,                                                     // ust   (m_station)
+                                    (int)round(metaPrimitiveIt.phi * PHIRES_CONV),          // uphi  (m_phiAngle)
+                                    (int)round(metaPrimitiveIt.phiB * PHIBRES_CONV),        // uphib (m_phiBending)
+                                    metaPrimitiveIt.quality,                                // uqua  (m_qualityCode)
+                                    metaPrimitiveIt.index,                                  // uind  (m_segmentIndex)
+                                    tp_t0,                                                  // ut0   (m_t0Segment)
+                                    (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),        // uchi2 (m_chi2Segment)
+                                    (int)round(metaPrimitiveIt.x * 1000),                   // ux    (m_xLocal)
+                                    (int)round(metaPrimitiveIt.tanPhi * 1000),              // utan  (m_tanPsi)
                                     (int)round(metaPrimitiveIt.phi_cmssw * PHIRES_CONV),    // uphi  (m_phiAngleCMSSW)
                                     (int)round(metaPrimitiveIt.phiB_cmssw * PHIBRES_CONV),  // uphib (m_phiBendingCMSSW)
                                     metaPrimitiveIt.rpcFlag,                                // urpc  (m_rpcFlag)
@@ -924,17 +936,17 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
           // phiTP (standard DF)
           outP2Ph.push_back(L1Phase2MuDTPhDigi(
               (int)round(metaPrimitiveIt.t0 / (float)LHC_CLK_FREQ) - shift_back,
-              chId.wheel(),                                                // uwh (m_wheel)
-              sectorTP,                                                    // usc (m_sector)
-              chId.station(),                                              // ust (m_station)
-              sl,                                                          // ust (m_station)
-              (int)round(metaPrimitiveIt.phi * PHIRES_CONV),               // uphi (_phiAngle)
-              (int)round(metaPrimitiveIt.phiB * PHIBRES_CONV),             // uphib (m_phiBending)
-              metaPrimitiveIt.quality,                                     // uqua (m_qualityCode)
-              metaPrimitiveIt.index,                                       // uind (m_segmentIndex)
-              tp_t0,                                                       // ut0 (m_t0Segment)
-              (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
-              metaPrimitiveIt.rpcFlag                                      // urpc (m_rpcFlag)
+              chId.wheel(),                                     // uwh (m_wheel)
+              sectorTP,                                         // usc (m_sector)
+              chId.station(),                                   // ust (m_station)
+              sl,                                               // ust (m_station)
+              (int)round(metaPrimitiveIt.phi * PHIRES_CONV),    // uphi (_phiAngle)
+              (int)round(metaPrimitiveIt.phiB * PHIBRES_CONV),  // uphib (m_phiBending)
+              metaPrimitiveIt.quality,                          // uqua (m_qualityCode)
+              metaPrimitiveIt.index,                            // uind (m_segmentIndex)
+              tp_t0,                                            // ut0 (m_t0Segment)
+              (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),  // uchi2 (m_chi2Segment)
+              metaPrimitiveIt.rpcFlag                           // urpc (m_rpcFlag)
               ));
         }
       } else {
@@ -951,19 +963,19 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
           // thTP (extended DF)
           outExtP2Th.emplace_back(
               L1Phase2MuDTExtThDigi((int)round(metaPrimitiveIt.t0 / (float)LHC_CLK_FREQ) - shift_back,
-                                    chId.wheel(),                                                // uwh   (m_wheel)
-                                    sectorTP,                                                    // usc   (m_sector)
-                                    chId.station(),                                              // ust   (m_station)
-                                    (int)round(metaPrimitiveIt.phi * ZRES_CONV),                 // uz    (m_zGlobal)
-                                    (int)round(metaPrimitiveIt.phiB * KRES_CONV),                // uk    (m_kSlope)
-                                    metaPrimitiveIt.quality,                                     // uqua  (m_qualityCode)
-                                    metaPrimitiveIt.index,                                       // uind  (m_segmentIndex)
-                                    tp_t0,                                                       // ut0   (m_t0Segment)
-                                    (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
-                                    (int)round(metaPrimitiveIt.x * 1000),                        // ux    (m_yLocal)
-                                    (int)round(metaPrimitiveIt.phi_cmssw * PHIRES_CONV),         // uphi  (m_zCMSSW)
-                                    (int)round(metaPrimitiveIt.phiB_cmssw * PHIBRES_CONV),       // uphib (m_kCMSSW)
-                                    metaPrimitiveIt.rpcFlag,                                     // urpc  (m_rpcFlag)
+                                    chId.wheel(),                                           // uwh   (m_wheel)
+                                    sectorTP,                                               // usc   (m_sector)
+                                    chId.station(),                                         // ust   (m_station)
+                                    (int)round(metaPrimitiveIt.phi * ZRES_CONV),            // uz    (m_zGlobal)
+                                    (int)round(metaPrimitiveIt.phiB * KRES_CONV),           // uk    (m_kSlope)
+                                    metaPrimitiveIt.quality,                                // uqua  (m_qualityCode)
+                                    metaPrimitiveIt.index,                                  // uind  (m_segmentIndex)
+                                    tp_t0,                                                  // ut0   (m_t0Segment)
+                                    (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),        // uchi2 (m_chi2Segment)
+                                    (int)round(metaPrimitiveIt.x * 1000),                   // ux    (m_yLocal)
+                                    (int)round(metaPrimitiveIt.phi_cmssw * PHIRES_CONV),    // uphi  (m_zCMSSW)
+                                    (int)round(metaPrimitiveIt.phiB_cmssw * PHIBRES_CONV),  // uphib (m_kCMSSW)
+                                    metaPrimitiveIt.rpcFlag,                                // urpc  (m_rpcFlag)
                                     pathWireId,
                                     pathTDC,
                                     pathLat));
@@ -972,16 +984,16 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
           // thTP (standard DF)
           outP2Th.push_back(L1Phase2MuDTThDigi(
               (int)round(metaPrimitiveIt.t0 / (float)LHC_CLK_FREQ) - shift_back,
-              chId.wheel(),                                                // uwh (m_wheel)
-              sectorTP,                                                    // usc (m_sector)
-              chId.station(),                                              // ust (m_station)
-              (int)round(metaPrimitiveIt.phi * ZRES_CONV),                 // uz (m_zGlobal)
-              (int)round(metaPrimitiveIt.phiB * KRES_CONV),                // uk (m_kSlope)
-              metaPrimitiveIt.quality,                                     // uqua (m_qualityCode)
-              metaPrimitiveIt.index,                                       // uind (m_segmentIndex)
-              tp_t0,                                                       // ut0 (m_t0Segment)
-              (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
-              metaPrimitiveIt.rpcFlag                                      // urpc (m_rpcFlag)
+              chId.wheel(),                                     // uwh (m_wheel)
+              sectorTP,                                         // usc (m_sector)
+              chId.station(),                                   // ust (m_station)
+              (int)round(metaPrimitiveIt.phi * ZRES_CONV),      // uz (m_zGlobal)
+              (int)round(metaPrimitiveIt.phiB * KRES_CONV),     // uk (m_kSlope)
+              metaPrimitiveIt.quality,                          // uqua (m_qualityCode)
+              metaPrimitiveIt.index,                            // uind (m_segmentIndex)
+              tp_t0,                                            // ut0 (m_t0Segment)
+              (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),  // uchi2 (m_chi2Segment)
+              metaPrimitiveIt.rpcFlag                           // urpc (m_rpcFlag)
               ));
         }
       }
@@ -1065,12 +1077,11 @@ void DTTrigPhase2Prod::printmP(const string& ss, const metaPrimitive& mP) const 
 
 void DTTrigPhase2Prod::printmP(const metaPrimitive& mP) const {
   DTSuperLayerId slId(mP.rawId);
-  std::cout << (int)slId << "\t " << setw(2) << left << mP.wi1 << " " << setw(2) << left
-                              << mP.wi2 << " " << setw(2) << left << mP.wi3 << " " << setw(2) << left << mP.wi4 << " "
-                              << setw(5) << left << mP.tdc1 << " " << setw(5) << left << mP.tdc2 << " " << setw(5)
-                              << left << mP.tdc3 << " " << setw(5) << left << mP.tdc4 << " " << setw(10) << right
-                              << mP.x << " " << setw(9) << left << mP.tanPhi << " " << setw(5) << left << mP.t0 << " "
-                              << setw(13) << left << mP.chi2 << " r:" << rango(mP) << std::endl;
+  std::cout << (int)slId << "\t " << setw(2) << left << mP.wi1 << " " << setw(2) << left << mP.wi2 << " " << setw(2)
+            << left << mP.wi3 << " " << setw(2) << left << mP.wi4 << " " << setw(5) << left << mP.tdc1 << " " << setw(5)
+            << left << mP.tdc2 << " " << setw(5) << left << mP.tdc3 << " " << setw(5) << left << mP.tdc4 << " "
+            << setw(10) << right << mP.x << " " << setw(9) << left << mP.tanPhi << " " << setw(5) << left << mP.t0
+            << " " << setw(13) << left << mP.chi2 << " r:" << rango(mP) << std::endl;
 }
 
 void DTTrigPhase2Prod::printmPC(const string& ss, const metaPrimitive& mP) const {
@@ -1092,19 +1103,17 @@ void DTTrigPhase2Prod::printmPC(const string& ss, const metaPrimitive& mP) const
 
 void DTTrigPhase2Prod::printmPC(const metaPrimitive& mP) const {
   DTChamberId ChId(mP.rawId);
-  std::cout << (int)ChId << "\t  " << setw(2) << left << mP.wi1 << " " << setw(2) << left
-                              << mP.wi2 << " " << setw(2) << left << mP.wi3 << " " << setw(2) << left << mP.wi4 << " "
-                              << setw(2) << left << mP.wi5 << " " << setw(2) << left << mP.wi6 << " " << setw(2) << left
-                              << mP.wi7 << " " << setw(2) << left << mP.wi8 << " " << setw(5) << left << mP.tdc1 << " "
-                              << setw(5) << left << mP.tdc2 << " " << setw(5) << left << mP.tdc3 << " " << setw(5)
-                              << left << mP.tdc4 << " " << setw(5) << left << mP.tdc5 << " " << setw(5) << left
-                              << mP.tdc6 << " " << setw(5) << left << mP.tdc7 << " " << setw(5) << left << mP.tdc8
-                              << " " << setw(2) << left << mP.lat1 << " " << setw(2) << left << mP.lat2 << " "
-                              << setw(2) << left << mP.lat3 << " " << setw(2) << left << mP.lat4 << " " << setw(2)
-                              << left << mP.lat5 << " " << setw(2) << left << mP.lat6 << " " << setw(2) << left
-                              << mP.lat7 << " " << setw(2) << left << mP.lat8 << " " << setw(10) << right << mP.x << " "
-                              << setw(9) << left << mP.tanPhi << " " << setw(5) << left << mP.t0 << " " << setw(13)
-                              << left << mP.chi2 << " r:" << rango(mP) << std::endl;
+  std::cout << (int)ChId << "\t  " << setw(2) << left << mP.wi1 << " " << setw(2) << left << mP.wi2 << " " << setw(2)
+            << left << mP.wi3 << " " << setw(2) << left << mP.wi4 << " " << setw(2) << left << mP.wi5 << " " << setw(2)
+            << left << mP.wi6 << " " << setw(2) << left << mP.wi7 << " " << setw(2) << left << mP.wi8 << " " << setw(5)
+            << left << mP.tdc1 << " " << setw(5) << left << mP.tdc2 << " " << setw(5) << left << mP.tdc3 << " "
+            << setw(5) << left << mP.tdc4 << " " << setw(5) << left << mP.tdc5 << " " << setw(5) << left << mP.tdc6
+            << " " << setw(5) << left << mP.tdc7 << " " << setw(5) << left << mP.tdc8 << " " << setw(2) << left
+            << mP.lat1 << " " << setw(2) << left << mP.lat2 << " " << setw(2) << left << mP.lat3 << " " << setw(2)
+            << left << mP.lat4 << " " << setw(2) << left << mP.lat5 << " " << setw(2) << left << mP.lat6 << " "
+            << setw(2) << left << mP.lat7 << " " << setw(2) << left << mP.lat8 << " " << setw(10) << right << mP.x
+            << " " << setw(9) << left << mP.tanPhi << " " << setw(5) << left << mP.t0 << " " << setw(13) << left
+            << mP.chi2 << " r:" << rango(mP) << std::endl;
 }
 
 int DTTrigPhase2Prod::rango(const metaPrimitive& mp) const {
@@ -1254,7 +1263,8 @@ void DTTrigPhase2Prod::fillDescriptions(edm::ConfigurationDescriptions& descript
   desc.add<edm::FileInPath>("lut_sl3", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/fitterlut_sl3.dat"));
   desc.add<edm::FileInPath>("lut_2sl", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/fitterlut_2sl.dat"));
   desc.add<edm::FileInPath>("shift_filename", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/wire_rawId_x.txt"));
-  desc.add<edm::FileInPath>("maxdrift_filename", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/drift_time_per_chamber.txt"));
+  desc.add<edm::FileInPath>("maxdrift_filename",
+                            edm::FileInPath("L1Trigger/DTTriggerPhase2/data/drift_time_per_chamber.txt"));
   desc.add<edm::FileInPath>("shift_theta_filename", edm::FileInPath("L1Trigger/DTTriggerPhase2/data/theta_shift.txt"));
   desc.add<edm::FileInPath>("global_coords_filename",
                             edm::FileInPath("L1Trigger/DTTriggerPhase2/data/global_coord_perp_x_phi0.txt"));

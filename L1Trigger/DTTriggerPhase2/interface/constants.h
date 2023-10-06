@@ -121,7 +121,7 @@ namespace cmsdt {
           lat8(l8),
           index(idx),
           rpcFlag(rpc) {}
-      metaPrimitive()
+    metaPrimitive()
         : rawId(0),
           t0(0),
           x(0),
@@ -230,7 +230,7 @@ namespace cmsdt {
   constexpr int PATHFINDER_INPUT_HITS_LIMIT = 8;
 
   /* laterality provider */
-  constexpr int LAT_TOTAL_BITS = 9; // tdc counts from 0 to 512
+  constexpr int LAT_TOTAL_BITS = 9;  // tdc counts from 0 to 512
   constexpr int LAT_MSB_BITS = 6;
   constexpr int TIME_TO_TDC_COUNTS = 32;
 
@@ -241,7 +241,7 @@ namespace cmsdt {
   constexpr int LAT_P0_3H = 24;
   constexpr int LAT_P1_3H = 27;
   constexpr int LAT_P2_3H = 30;
-  
+
   /* Fitting */
 
   constexpr int SL1_CELLS_OFFSET = 48;
@@ -287,13 +287,13 @@ namespace cmsdt {
   constexpr int PROD_RESIZE_COR_SLOPE = 29;
 
   constexpr int T0_CUT_TOLERANCE = 0;
-  
+
   // Filtering
   constexpr int FSEG_T0_BX_LSB = 2;
   constexpr int FSEG_T0_DISCARD_LSB = 5;
   constexpr int FSEG_T0_SIZE = FSEG_T0_BX_LSB + (5 - FSEG_T0_DISCARD_LSB);
   constexpr int FSEG_POS_DISCARD_LSB = 9;
-  constexpr int FSEG_POS_SIZE = WIDTH_FULL_POS - FSEG_POS_DISCARD_LSB;  
+  constexpr int FSEG_POS_SIZE = WIDTH_FULL_POS - FSEG_POS_DISCARD_LSB;
   constexpr int FSEG_SLOPE_DISCARD_LSB = 9;
   constexpr int FSEG_SLOPE_SIZE = WIDTH_FULL_SLOPE - FSEG_SLOPE_DISCARD_LSB;
   constexpr int SLFILT_MAX_SEG1T0_TO_SEG2ARRIVAL = 24;
@@ -303,7 +303,7 @@ namespace cmsdt {
 
   // In ns (maximum drift time inside the cell)
   constexpr float MAXDRIFT = 387;
-  constexpr float MAXDRIFTTDC = 496; // we could make this value depend on the chamber, to be seen
+  constexpr float MAXDRIFTTDC = 496;  // we could make this value depend on the chamber, to be seen
 
   // In mm (cell dimmensions)
   constexpr int CELL_HEIGHT = 13;
@@ -316,7 +316,7 @@ namespace cmsdt {
   constexpr int DRIFT_SPEED_X4 = 889;  // 55.5 * 2 ** 4
 
   // slope conversion 1 LSB = (v_drift) x (1 tdc count) / (1 semicell_h * 16) ~= 0.4e-3
-  constexpr float SLOPE_LSB = ((float) CELL_SEMILENGTH / MAXDRIFTTDC) * (1) / (CELL_SEMIHEIGHT * 16.);
+  constexpr float SLOPE_LSB = ((float)CELL_SEMILENGTH / MAXDRIFTTDC) * (1) / (CELL_SEMIHEIGHT * 16.);
 
   // distance between SLs, cm
   constexpr float VERT_PHI1_PHI3 = 23.5;
@@ -335,7 +335,6 @@ namespace cmsdt {
 
   // max number of TPs to correlate and perform the refitting
   constexpr int MAX_PRIM_FOR_COR = 12;
-
 
   /*
   This is the maximum value than internal time can take. This is because

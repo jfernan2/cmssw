@@ -72,7 +72,6 @@ private:
 
   // Private attributes
   const bool debug_;
-
 };
 
 #endif

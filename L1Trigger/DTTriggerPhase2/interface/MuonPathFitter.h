@@ -13,27 +13,27 @@ struct coeffs_t {
   coeff_arr_t t0;
   coeff_arr_t position;
   coeff_arr_t slope;
-  coeffs_t():
-    t0(cmsdt::N_COEFFS, std::vector<int>(cmsdt::GENERIC_COEFF_WIDTH, 0)),
-    position(cmsdt::N_COEFFS, std::vector<int>(cmsdt::GENERIC_COEFF_WIDTH, 0)),
-    slope(cmsdt::N_COEFFS, std::vector<int> (cmsdt::GENERIC_COEFF_WIDTH, 0)) {}
+  coeffs_t()
+      : t0(cmsdt::N_COEFFS, std::vector<int>(cmsdt::GENERIC_COEFF_WIDTH, 0)),
+        position(cmsdt::N_COEFFS, std::vector<int>(cmsdt::GENERIC_COEFF_WIDTH, 0)),
+        slope(cmsdt::N_COEFFS, std::vector<int>(cmsdt::GENERIC_COEFF_WIDTH, 0)) {}
 };
 
 struct SLhitP {
-  int ti; // unsigned(16 downto 0); -- 12 msb = bunch_ctr, 5 lsb = tdc counts, resolution 25/32 ns
-  int wi; // unsigned(6 downto 0); -- ~ 96 channels per layer
-  int ly; // unsigned(1 downto 0); -- 4 layers
-  int wp; // signed(WIREPOS_WIDTH-1 downto 0);
+  int ti;  // unsigned(16 downto 0); -- 12 msb = bunch_ctr, 5 lsb = tdc counts, resolution 25/32 ns
+  int wi;  // unsigned(6 downto 0); -- ~ 96 channels per layer
+  int ly;  // unsigned(1 downto 0); -- 4 layers
+  int wp;  // signed(WIREPOS_WIDTH-1 downto 0);
 };
 
 struct fit_common_in_t {
   // int valid; not needed, we will not propagate the mpath to the fitter
   std::vector<SLhitP> hits;
-  std::vector<int> hits_valid; // slv(0 to 7)
-  std::vector<int> lateralities; // slv(0 to 7)
+  std::vector<int> hits_valid;    // slv(0 to 7)
+  std::vector<int> lateralities;  // slv(0 to 7)
   coeffs_t coeffs;
-  int coarse_bctr; // unsigned(11 downto 0)
-  int coarse_wirepos; // signed(WIDTH_FULL_POS-1 downto WIREPOS_NORM_LSB_IGNORED);
+  int coarse_bctr;     // unsigned(11 downto 0)
+  int coarse_wirepos;  // signed(WIDTH_FULL_POS-1 downto WIREPOS_NORM_LSB_IGNORED);
 };
 
 struct fit_common_out_t {
@@ -42,27 +42,30 @@ struct fit_common_out_t {
   int position;
   int chi2;
   int valid_fit;
-  fit_common_out_t(): t0(0), slope(0), position(0), chi2(0), valid_fit(0) {}
+  fit_common_out_t() : t0(0), slope(0), position(0), chi2(0), valid_fit(0) {}
 };
-
 
 // ===============================================================================
 // Class declarations
 // ===============================================================================
 
-
 class MuonPathFitter : public MuonPathAnalyzer {
 public:
   // Constructors and destructor
   MuonPathFitter(const edm::ParameterSet &pset,
-                           edm::ConsumesCollector &iC,
-                           std::shared_ptr<GlobalCoordsObtainer> &globalcoordsobtainer);
+                 edm::ConsumesCollector &iC,
+                 std::shared_ptr<GlobalCoordsObtainer> &globalcoordsobtainer);
   ~MuonPathFitter() override;
 
   // Main methods
 
   // Other public methods
-  coeffs_t RomDataConvert(std::vector<int> slv, short COEFF_WIDTH_T0, short COEFF_WIDTH_POSITION, short COEFF_WIDTH_SLOPE, short LOLY, short HILY);
+  coeffs_t RomDataConvert(std::vector<int> slv,
+                          short COEFF_WIDTH_T0,
+                          short COEFF_WIDTH_POSITION,
+                          short COEFF_WIDTH_SLOPE,
+                          short LOLY,
+                          short HILY);
 
   bool hasPosRF(int wh, int sec) { return wh > 0 || (wh == 0 && sec % 4 > 1); };
   void setChi2Th(double chi2Th) { chi2Th_ = chi2Th; };
@@ -102,12 +105,10 @@ public:
   // global coordinates
   std::shared_ptr<GlobalCoordsObtainer> globalcoordsobtainer_;
 
-
 private:
   // Private methods
 
   // Private attributes
-
 };
 
 #endif

@@ -25,17 +25,14 @@
 // Previous definitions and declarations
 // ===============================================================================
 
-
 // ===============================================================================
 // Class declarations
 // ===============================================================================
 
-
 class MuonPathConfirmator {
 public:
   // Constructors and destructor
-  MuonPathConfirmator(const edm::ParameterSet &pset,
-                           edm::ConsumesCollector &iC);
+  MuonPathConfirmator(const edm::ParameterSet &pset, edm::ConsumesCollector &iC);
   ~MuonPathConfirmator();
 
   // Main methods
@@ -52,8 +49,8 @@ public:
 private:
   // Private methods
   void analyze(cmsdt::metaPrimitive mp,
-    edm::Handle<DTDigiCollection> dtdigis,
-    std::vector<cmsdt::metaPrimitive> &outMetaPrimitives);
+               edm::Handle<DTDigiCollection> dtdigis,
+               std::vector<cmsdt::metaPrimitive> &outMetaPrimitives);
   // Private attributes
   bool debug_;
   double minx_match_2digis_;
@@ -70,7 +67,6 @@ private:
   int LYRANDAHALF_RES_SHR = 4;
   float SEMICHAMBER_H_REAL = ((235. / 2.) / (16. * 6.5)) * std::pow(2, SEMICHAMBER_H_PRECISSION);
   int SEMICHAMBER_H = int(SEMICHAMBER_H_REAL);
-
 };
 
 #endif

@@ -17,12 +17,10 @@ struct lat_combination {
 // Class declarations
 // ===============================================================================
 
-
 class LateralityBasicProvider : public LateralityProvider {
 public:
   // Constructors and destructor
-  LateralityBasicProvider(const edm::ParameterSet &pset,
-                          edm::ConsumesCollector &iC);
+  LateralityBasicProvider(const edm::ParameterSet &pset, edm::ConsumesCollector &iC);
   ~LateralityBasicProvider() override;
 
   // Main methods
@@ -30,7 +28,7 @@ public:
   void run(edm::Event &iEvent,
            const edm::EventSetup &iEventSetup,
            MuonPathPtrs &inMpath,
-           std::vector<lat_vector>& lateralities) override;
+           std::vector<lat_vector> &lateralities) override;
 
   void finish() override;
 
@@ -38,12 +36,11 @@ public:
 
 private:
   // Private methods
-  void analyze(MuonPathPtr &inMPath, std::vector<lat_vector>& lateralities);
+  void analyze(MuonPathPtr &inMPath, std::vector<lat_vector> &lateralities);
   void fill_lat_combinations();
   // Private attributes
   const bool debug_;
   std::vector<lat_combination> lat_combinations;
-
 };
 
 #endif

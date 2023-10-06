@@ -28,7 +28,6 @@
 using latcomb = std::vector<short>;
 using lat_vector = std::vector<latcomb>;
 
-
 class LateralityProvider {
 public:
   // Constructors and destructor
@@ -48,13 +47,12 @@ public:
 
   // Public attributes
   lat_vector LAT_VECTOR_NULL = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
+
 private:
   // Private methods
 
-
   // Private attributes
   const bool debug_;
-  
 };
 
 #endif
