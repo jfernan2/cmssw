@@ -1,5 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
+from RecoHGCal.TICL.IterLabels_cff import *
 from RecoHGCal.TICL.FastJetStep_cff import *
 from RecoHGCal.TICL.CLUE3DHighStep_cff import *
 from RecoHGCal.TICL.MIPStep_cff import *
@@ -134,15 +135,6 @@ ticlPFTask = cms.Task(pfTICL)
 ticlIterationsTask = cms.Task(
     ticlCLUE3DHighStepTask,
     ticlRecoveryStepTask
-)
-
-ticlIterLabelsPSet = cms.PSet(
-    labels=cms.vstring(
-        "ticlTrackstersCLUE3DHigh",
-        "ticlTracksterLinks",
-        "ticlCandidate",
-        "ticlTracksterLinksSuperclusteringDNN"
-    )
 )
 
 ticl_superclustering_mustache_ticl.toModify(
